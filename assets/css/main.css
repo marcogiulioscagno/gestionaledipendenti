@@ -3328,20 +3328,30 @@ input, select, textarea {
 
 		}
 		
-/* HEADER CENTRALE */
-.header-center {
+/* —————————————————————— */
+/* TITOLO SU UN’UNICA RIGA */
+/* —————————————————————— */
+
+.header-singleline .inner {
   text-align: center;
   padding: 3rem 1rem 2rem;
 }
 
-.header-center h1 {
+.header-singleline h1 {
   margin: 0 auto;
-  font-size: clamp(2.5rem, 8vw, 4rem);
+  /* Font-size fluido: mai troppo grande, mai troppo piccolo */
+  font-size: clamp(2rem, 6vw, 3.5rem);
   line-height: 1.1;
-  max-width: 600px;
+  white-space: nowrap;        /* forzi una riga */
+  overflow: hidden;           /* se strettissimo, nessun wrap */
+  text-overflow: ellipsis;    /* ... se proprio non entra */
+  max-width: 95%;             /* margine laterale minimo */
   color: #333;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  hyphens: auto;
-  word-break: break-word;
+}
+
+/* Spazio extra prima dei tiles */
+#main {
+  margin-top: 1rem;
 }
