@@ -1,38 +1,58 @@
 <!DOCTYPE HTML>
 <html lang="it">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Anagrafica – Gestionale</title>
-  <link rel="stylesheet" href="assets/css/main.css"/>
-  <link rel="stylesheet" href="assets/css/style.css"/>
-  <script type="module" src="assets/js/supabaseClient.js"></script>
-  <script type="module" src="assets/js/anagrafica.js" defer></script>
-</head>
-<body class="is-preload">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Statistiche – Gestionale</title>
 
-  <!-- Banner ridotto con back -->
+  <!-- Phantom CSS -->
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+
+  <!-- tue regole (opzionale, per canvas styling) -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Supabase + Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+  <!-- tuo script (contiene loadStats) -->
+  <script src="script.js" defer></script>      <!--  [oai_citation:2‡script.js](file-service://file-8x4QmthhDoW8fPsjsLmsPj) -->
+</head>
+<body>
+
+  <!-- banner small -->
   <section id="banner" class="small">
     <div class="inner">
       <a href="index.html" class="button small">← Home</a>
-      <h2>Anagrafica</h2>
+      <h2>Statistiche</h2>
     </div>
   </section>
 
-  <!-- Pulsantiera interna -->
-  <section class="pulsanti interno">
-    <button id="btnStat">Statistiche</button>
-    <button id="btnList">Dipendenti</button>
-    <button id="btnReport">Report</button>
+  <section id="main" class="wrapper">
+    <div class="inner">
+
+      <div class="chart-row">
+        <canvas id="chartSede"></canvas>
+        <canvas id="chartTeam"></canvas>
+      </div>
+      <div class="chart-row">
+        <canvas id="chartContract"></canvas>
+        <canvas id="chartAmbito"></canvas>
+      </div>
+      <div class="chart-row">
+        <canvas id="chartClients"></canvas>
+      </div>
+
+    </div>
   </section>
 
-  <!-- Qui verranno caricate le 3 sottosezioni: -->
-  <main id="content">
-    <section id="statsSection" class="hidden"><!-- grafici -->…</section>
-    <section id="listSection" class="hidden"><!-- tabella dipendenti -->…</section>
-    <section id="reportSection" class="hidden"><!-- report → placeholder -->…</section>
-  </main>
+  <!-- Phantom JS -->
+  <script src="assets/js/jquery.min.js"></script>
+  <script src="assets/js/browser.min.js"></script>
+  <script src="assets/js/breakpoints.min.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/main.js"></script>
 
-  <script src="assets/js/phantom.js"></script>
 </body>
 </html>
