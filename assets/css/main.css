@@ -3329,48 +3329,31 @@ input, select, textarea {
 		}
 		
 /* —————————————————————— */
-/* HERO SECTION            */
+/* HEADER TITLE CENTRAL    */
 /* —————————————————————— */
 
-#hero {
-  min-height: 60vh;
-  padding: 4rem 1rem;
-  /* background-image: url('../images/hero-bg.jpg'); */
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+#page-header {
+  padding: 4rem 1rem 2rem;
   text-align: center;
 }
 
-#hero .inner {
-  max-width: 600px;
-  margin: 0 auto;
-  color: #fff;
-}
-
-#hero h1 {
+#page-header h1 {
   font-size: 3rem;
   line-height: 1.2;
-  margin-bottom: 1rem;
+  margin: 0 auto;
+  max-width: 600px;
   white-space: normal;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
-#hero p {
-  font-size: 1.2rem;
-  margin-bottom: 2rem;
-}
-
-.scrolldown {
-  display: inline-block;
-  animation: bounce 2s infinite;
-}
-@keyframes bounce {
-  0%,100% { transform: translateY(0); }
-  50%     { transform: translateY(-10px); }
-}
-
-/* Distanza fra hero e tiles */
-#tiles {
-  margin-top: 2rem;
+/* Aggiunge un sottile separatore sotto il titolo */
+#page-header::after {
+  content: "";
+  display: block;
+  width: 100px;
+  height: 4px;
+  background: linear-gradient(90deg, #667eea, #764ba2);
+  margin: 1rem auto 0;
 }
