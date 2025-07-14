@@ -1,38 +1,77 @@
 <!DOCTYPE HTML>
 <html lang="it">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Anagrafica – Gestionale</title>
-  <link rel="stylesheet" href="assets/css/main.css"/>
-  <link rel="stylesheet" href="assets/css/style.css"/>
-  <script type="module" src="assets/js/supabaseClient.js"></script>
-  <script type="module" src="assets/js/anagrafica.js" defer></script>
-</head>
-<body class="is-preload">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dipendenti – Gestionale</title>
 
-  <!-- Banner ridotto con back -->
+  <!-- Phantom CSS -->
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+
+  <!-- tue regole -->
+  <link rel="stylesheet" href="style.css" />  <!--  [oai_citation:0‡style.css](file-service://file-ApxiM4AgDFtnTuz12ARMEr) -->
+
+  <!-- Supabase + Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+
+  <!-- il tuo script di ieri -->
+  <script src="script.js" defer></script>      <!--  [oai_citation:1‡script.js](file-service://file-8x4QmthhDoW8fPsjsLmsPj) -->
+</head>
+<body>
+
+  <!-- banner “piccolo” con back button -->
   <section id="banner" class="small">
     <div class="inner">
       <a href="index.html" class="button small">← Home</a>
-      <h2>Anagrafica</h2>
+      <h2>Dipendenti</h2>
     </div>
   </section>
 
-  <!-- Pulsantiera interna -->
-  <section class="pulsanti interno">
-    <button id="btnStat">Statistiche</button>
-    <button id="btnList">Dipendenti</button>
-    <button id="btnReport">Report</button>
+  <!-- qui dentro metti la form + tabella dal tuo index.html di ieri -->
+  <section id="main" class="wrapper">
+    <div class="inner">
+
+      <!-- FORM INSERIMENTO -->
+      <div class="form-row">
+        <input id="inName"       placeholder="Nome">
+        <input id="inSurname"    placeholder="Cognome">
+        <input id="inTeam"       placeholder="Team">
+      </div>
+      <div class="form-row">
+        <input id="inRole"       placeholder="Ruolo">
+        <input id="inSede"       placeholder="Sede">
+        <input id="inContract"   placeholder="Contratto">
+      </div>
+      <div class="form-row">
+        <input id="inAmbito"     placeholder="Ambito (csv)">
+        <input id="inClients"    placeholder="Clienti (csv)">
+        <input id="inState"      placeholder="Stato">
+      </div>
+      <button id="btnAdd">Aggiungi AS</button>
+
+      <!-- TABELLA DIPENDENTI -->
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th><th>Cognome</th><th>Team</th><th>Ruolo</th>
+            <th>Sede</th><th>Contratto</th><th>Ambito</th><th>Clienti</th>
+            <th>Stato</th><th>Azioni</th>
+          </tr>
+        </thead>
+        <tbody id="listBody"></tbody>
+      </table>
+
+    </div>
   </section>
 
-  <!-- Qui verranno caricate le 3 sottosezioni: -->
-  <main id="content">
-    <section id="statsSection" class="hidden"><!-- grafici -->…</section>
-    <section id="listSection" class="hidden"><!-- tabella dipendenti -->…</section>
-    <section id="reportSection" class="hidden"><!-- report → placeholder -->…</section>
-  </main>
+  <!-- Phantom JS -->
+  <script src="assets/js/jquery.min.js"></script>
+  <script src="assets/js/browser.min.js"></script>
+  <script src="assets/js/breakpoints.min.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/main.js"></script>
 
-  <script src="assets/js/phantom.js"></script>
 </body>
 </html>
