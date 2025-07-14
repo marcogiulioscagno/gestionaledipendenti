@@ -4,7 +4,7 @@
 const SUPABASE_URL = 'https://fzbpucvscnfyimefrvzs.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-const TABLE = 'application_specialist'
+const TABLE = 'application_specialists'
 
 document.addEventListener('DOMContentLoaded', () => {
   // Dipendenti
