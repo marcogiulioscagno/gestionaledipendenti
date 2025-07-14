@@ -1,76 +1,103 @@
 <!DOCTYPE HTML>
-<!--
-  Phantom by HTML5 UP
-  html5up.net | @ajlkn
-  Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
+<!-- Phantom by HTML5 UP -->
 <html lang="it">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
   <title>Dipendenti – Gestionale</title>
   <!-- Phantom CSS -->
-  <link rel="stylesheet" href="assets/css/main.css"/>
-  <noscript><link rel="stylesheet" href="assets/css/noscript.css"/></noscript>
-  <!-- Tuo CSS -->
-  <link rel="stylesheet" href="style.css"/>
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+  <!-- Tuo CSS (se hai personalizzazioni) -->
+  <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase + Chart.js (Chart.js serve solo su statistiche, ma non crea conflitti) -->
+  <!-- Supabase + Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-
-  <!-- Il tuo script.js con tutta la logica -->
+  <!-- La logica comune -->
   <script src="script.js" defer></script>
 </head>
 <body>
 
-  <!-- Banner piccolo con back -->
-  <section id="banner" class="small">
-    <div class="inner">
-      <a href="index.html" class="button small">← Home</a>
-      <h2>Dipendenti</h2>
-    </div>
-  </section>
-
-  <!-- Form + Tabella -->
-  <section id="main" class="wrapper">
-    <div class="inner">
-
-      <!-- FORM -->
-      <form id="asForm" class="grid grid-cols-2 gap-4 mb-6">
-        <input id="inName"     type="text" placeholder="Nome"       required/>
-        <input id="inSurname"  type="text" placeholder="Cognome"    required/>
-        <input id="inTeam"     type="text" placeholder="Team"       required/>
-        <input id="inRole"     type="text" placeholder="Ruolo"/>
-        <input id="inSede"     type="text" placeholder="Sede"       required/>
-        <select id="inContract">
-          <option>Indeterminato</option>
-          <option>Determinato</option>
-        </select>
-        <input id="inAmbito"   type="text" placeholder="Ambito (csv)"/>
-        <input id="inClients"  type="text" placeholder="Clienti (csv)"/>
-        <input id="inState"    type="text" placeholder="Stato"/>
-        <button id="btnAdd" type="button" class="primary col-span-2">Aggiungi AS</button>
-      </form>
-
-      <!-- TABELLA -->
-      <div class="overflow-x-auto">
-        <table>
-          <thead>
-            <tr>
-              <th>Nome</th><th>Cognome</th><th>Team</th><th>Ruolo</th>
-              <th>Sede</th><th>Contratto</th><th>Ambito</th><th>Clienti</th>
-              <th>Stato</th><th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody id="listBody"></tbody>
-        </table>
+  <!-- Wrapper -->
+  <div id="wrapper">
+    <!-- Header small con back -->
+    <header id="header">
+      <div class="inner">
+        <a href="index.html" class="button small">← Home</a>
+        <h2>Dipendenti</h2>
       </div>
+    </header>
 
+    <!-- Main: form + tabella -->
+    <div id="main">
+      <div class="inner">
+
+        <form id="asForm">
+          <div class="fields">
+            <div class="field half">
+              <input id="inName"     type="text" placeholder="Nome"       required />
+            </div>
+            <div class="field half">
+              <input id="inSurname"  type="text" placeholder="Cognome"    required />
+            </div>
+            <div class="field half">
+              <input id="inTeam"     type="text" placeholder="Team"       required />
+            </div>
+            <div class="field half">
+              <input id="inRole"     type="text" placeholder="Ruolo" />
+            </div>
+            <div class="field half">
+              <input id="inSede"     type="text" placeholder="Sede"       required />
+            </div>
+            <div class="field half">
+              <select id="inContract">
+                <option>Indeterminato</option>
+                <option>Determinato</option>
+              </select>
+            </div>
+            <div class="field half">
+              <input id="inAmbito"   type="text" placeholder="Ambito (csv)" />
+            </div>
+            <div class="field half">
+              <input id="inClients"  type="text" placeholder="Clienti (csv)" />
+            </div>
+            <div class="field half">
+              <input id="inState"    type="text" placeholder="Stato" />
+            </div>
+          </div>
+          <ul class="actions">
+            <li><input id="btnAdd" type="button" value="Aggiungi AS" class="primary" /></li>
+          </ul>
+        </form>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th><th>Cognome</th><th>Team</th><th>Ruolo</th>
+                <th>Sede</th><th>Contratto</th><th>Ambito</th><th>Clienti</th>
+                <th>Stato</th><th>Azioni</th>
+              </tr>
+            </thead>
+            <tbody id="listBody"></tbody>
+          </table>
+        </div>
+
+      </div>
     </div>
-  </section>
 
-  <!-- Phantom JS -->
+    <!-- Footer Phantom (opzionale) -->
+    <footer id="footer">
+      <div class="inner">
+        <ul class="copyright">
+          <li>&copy; Gestionale Dipendenti</li>
+        </ul>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Script Phantom -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
