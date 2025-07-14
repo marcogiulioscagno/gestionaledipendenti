@@ -1,26 +1,25 @@
 <!DOCTYPE HTML>
-<!-- Phantom by HTML5 UP -->
+<!--
+  Phantom by HTML5 UP
+  html5up.net | @ajlkn
+  Free for personal and commercial use under the CCA 3.0 license
+-->
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
   <title>Statistiche – Gestionale</title>
+
   <!-- Phantom CSS -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-  <!-- Tuo CSS -->
-  <link rel="stylesheet" href="style.css" />
 
-  <!-- Supabase + Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <!-- Script comune -->
-  <script src="script.js" defer></script>
 </head>
-<body>
+<body class="is-preload">
 
   <!-- Wrapper -->
   <div id="wrapper">
+
     <!-- Header small con back -->
     <header id="header">
       <div class="inner">
@@ -29,7 +28,7 @@
       </div>
     </header>
 
-    <!-- Main: 5 canvas a griglia -->
+    <!-- Main: griglia di canvas -->
     <div id="main">
       <div class="inner">
         <div class="grid-style">
@@ -42,7 +41,7 @@
       </div>
     </div>
 
-    <!-- Footer Phantom -->
+    <!-- Footer minimale -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -50,13 +49,94 @@
         </ul>
       </div>
     </footer>
+
   </div>
 
-  <!-- Script Phantom -->
+  <!-- Supabase UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+
+  <!-- Script inline per le statistiche -->
+  <script>
+    // 1) Configura Supabase
+    const sb = supabase.createClient(
+      'https://fzbpucvscnfyimefrvzs.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'
+    );
+    const TABLE = 'application_specialists';
+
+    // 2) Al caricamento della pagina, disegna i grafici
+    document.addEventListener('DOMContentLoaded', loadStats);
+
+    async function loadStats() {
+      const { data, error } = await sb
+        .from(TABLE)
+        .select('sede,team,contratto,ambito,clienti');
+
+      if (error) {
+        alert('Errore statistiche: ' + error.message);
+        return;
+      }
+
+      // Funzione di conteggio per ogni chiave
+      const countBy = key => {
+        const map = {};
+        data.forEach(r => {
+          const arr = Array.isArray(r[key]) ? r[key] : [r[key]];
+          arr.filter(v => v).forEach(v => {
+            map[v] = (map[v] || 0) + 1;
+          });
+        });
+        return map;
+      };
+
+      // Disegna i vari grafici
+      renderPie('chartSede',      'AS per Sede',      countBy('sede'));
+      renderPie('chartTeam',      'AS per Team',      countBy('team'));
+      renderPie('chartContract',  'AS per Contratto', countBy('contratto'));
+      renderPie('chartAmbito',    'AS per Ambito',    countBy('ambito'));
+      renderPie('chartClients',   'AS per Clienti',   countBy('clienti'));
+    }
+
+    // Mappa per conservare i chart e poterli distruggere
+    const charts = {};
+
+    function renderPie(id, title, dataObj) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const ctx = el.getContext('2d');
+
+      // Se era già disegnato, distruggilo
+      if (charts[id]) charts[id].destroy();
+
+      const labels = Object.keys(dataObj);
+      const values = Object.values(dataObj);
+      // Genera colori HSL
+      const bg = labels.map((_, i) => `hsl(${i * 360 / labels.length},70%,60%)`);
+
+      charts[id] = new Chart(ctx, {
+        type: 'pie',
+        data: {
+          labels,
+          datasets: [{ data: values, backgroundColor: bg }]
+        },
+        options: {
+          plugins: {
+            title:  { display: true, text: title },
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+  </script>
+
+  <!-- Phantom JS -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
   <script src="assets/js/util.js"></script>
   <script src="assets/js/main.js"></script>
+
 </body>
 </html>
