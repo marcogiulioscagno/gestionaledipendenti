@@ -3327,3 +3327,45 @@ input, select, textarea {
 			}
 
 		}
+		
+/* Hero fullscreen */
+#hero {
+  position: relative;
+  height: 100vh;
+  /* Se hai un'immagine hero-bg.jpg in images/, scommenta la riga sotto: */
+  /* background: url('../images/hero-bg.jpg') center/cover no-repeat; */
+  /* Altrimenti usa un bel gradiente: */
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+#hero .inner {
+  max-width: 600px;
+  margin: 0 auto;
+  color: #fff;
+}
+
+#hero h1 {
+  font-size: 3rem;
+  line-height: 1.2;
+  margin-bottom: 1rem;
+}
+
+#hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+}
+
+/* Pulsante scrolldown “rimbalza” */
+.scrolldown {
+  display: inline-block;
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
