@@ -3328,13 +3328,16 @@ input, select, textarea {
 
 		}
 		
-/* Hero fullscreen */
+/* —————————————————————— */
+/* HERO SECTION            */
+/* —————————————————————— */
+
 #hero {
-  position: relative;
-  height: 100vh;
-  /* Se hai un'immagine hero-bg.jpg in images/, scommenta la riga sotto: */
-  /* background: url('../images/hero-bg.jpg') center/cover no-repeat; */
-  /* Altrimenti usa un bel gradiente: */
+  /* Non più height:100vh, ma auto con min-height */
+  min-height: 60vh;
+  padding: 4rem 1rem;
+  /* Gradient di default; per immagine:
+     background: url('../images/hero-bg.jpg') center/cover no-repeat; */
   background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
   align-items: center;
@@ -3352,6 +3355,8 @@ input, select, textarea {
   font-size: 3rem;
   line-height: 1.2;
   margin-bottom: 1rem;
+  /* forza la rottura di riga e spazio */
+  white-space: normal;
 }
 
 #hero p {
@@ -3359,7 +3364,7 @@ input, select, textarea {
   margin-bottom: 2rem;
 }
 
-/* Pulsante scrolldown “rimbalza” */
+/* Pulsante Scorri con animazione */
 .scrolldown {
   display: inline-block;
   animation: bounce 2s infinite;
@@ -3367,5 +3372,10 @@ input, select, textarea {
 
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+  50%      { transform: translateY(-10px); }
+}
+
+/* Spazio sotto il hero per evitare sovrapposizione */
+#tiles {
+  margin-top: 2rem;
 }
