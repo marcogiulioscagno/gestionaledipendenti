@@ -3329,31 +3329,20 @@ input, select, textarea {
 		}
 		
 /* —————————————————————— */
-/* HEADER TITLE CENTRAL    */
+/* HEADER CENTRALE        */
 /* —————————————————————— */
 
-#page-header {
-  padding: 4rem 1rem 2rem;
+.header-center {
   text-align: center;
+  padding: 4rem 1rem 2rem;
 }
 
-#page-header h1 {
+.header-center h1 {
+  margin: 0 auto;
   font-size: 3rem;
   line-height: 1.2;
-  margin: 0 auto;
   max-width: 600px;
-  white-space: normal;
   color: #333;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-}
-
-/* Aggiunge un sottile separatore sotto il titolo */
-#page-header::after {
-  content: "";
-  display: block;
-  width: 100px;
-  height: 4px;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  margin: 1rem auto 0;
 }
