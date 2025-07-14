@@ -13,9 +13,8 @@
   <!-- Phantom CSS -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
-
 </head>
-<body class="is-preload">
+<body>
 
   <!-- Wrapper -->
   <div id="wrapper">
@@ -52,21 +51,22 @@
 
   </div>
 
-  <!-- Supabase UMD -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.min.js"></script>
+  <!-- Carico SUPABASE e CHART.JS PRIMA del mio script -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 
   <!-- Script inline per le statistiche -->
   <script>
-    // 1) Configura Supabase
+    // 1) Configuro Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'
     );
+    console.log('SUPABASE CLIENT:', sb);
+
     const TABLE = 'application_specialists';
 
-    // 2) Al caricamento della pagina, disegna i grafici
+    // 2) Al caricamento, disegno i grafici
     document.addEventListener('DOMContentLoaded', loadStats);
 
     async function loadStats() {
@@ -79,52 +79,42 @@
         return;
       }
 
-      // Funzione di conteggio per ogni chiave
-      const countBy = key => {
-        const map = {};
-        data.forEach(r => {
-          const arr = Array.isArray(r[key]) ? r[key] : [r[key]];
-          arr.filter(v => v).forEach(v => {
-            map[v] = (map[v] || 0) + 1;
-          });
-        });
-        return map;
-      };
-
-      // Disegna i vari grafici
-      renderPie('chartSede',      'AS per Sede',      countBy('sede'));
-      renderPie('chartTeam',      'AS per Team',      countBy('team'));
-      renderPie('chartContract',  'AS per Contratto', countBy('contratto'));
-      renderPie('chartAmbito',    'AS per Ambito',    countBy('ambito'));
-      renderPie('chartClients',   'AS per Clienti',   countBy('clienti'));
+      renderPie('chartSede',     'AS per Sede',      countBy(data,'sede'));
+      renderPie('chartTeam',     'AS per Team',      countBy(data,'team'));
+      renderPie('chartContract', 'AS per Contratto', countBy(data,'contratto'));
+      renderPie('chartAmbito',   'AS per Ambito',    countBy(data,'ambito'));
+      renderPie('chartClients',  'AS per Clienti',   countBy(data,'clienti'));
     }
 
-    // Mappa per conservare i chart e poterli distruggere
-    const charts = {};
+    // helper di conteggio
+    function countBy(arr, key) {
+      return arr.reduce((map, r) => {
+        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
+        vals.filter(v => v).forEach(v => {
+          map[v] = (map[v] || 0) + 1;
+        });
+        return map;
+      }, {});
+    }
 
+    // disegno le pie e loggo per debug
+    const charts = {};
     function renderPie(id, title, dataObj) {
+      console.log('Rendering pie', id, dataObj);
       const el = document.getElementById(id);
       if (!el) return;
       const ctx = el.getContext('2d');
-
-      // Se era già disegnato, distruggilo
       if (charts[id]) charts[id].destroy();
-
       const labels = Object.keys(dataObj);
       const values = Object.values(dataObj);
-      // Genera colori HSL
-      const bg = labels.map((_, i) => `hsl(${i * 360 / labels.length},70%,60%)`);
-
+      const bg = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
       charts[id] = new Chart(ctx, {
         type: 'pie',
-        data: {
-          labels,
-          datasets: [{ data: values, backgroundColor: bg }]
-        },
+        data: { labels, datasets:[{ data: values, backgroundColor: bg }] },
         options: {
           plugins: {
-            title:  { display: true, text: title },
-            legend: { position: 'bottom' }
+            title:  { display:true, text:title },
+            legend: { position:'bottom' }
           }
         }
       });
