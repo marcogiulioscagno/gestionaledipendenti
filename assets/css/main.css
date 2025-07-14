@@ -3333,11 +3333,11 @@ input, select, textarea {
 /* —————————————————————— */
 
 #hero {
-  /* Non più height:100vh, ma auto con min-height */
+  /* Altezza minima per non coprire i tiles */
   min-height: 60vh;
   padding: 4rem 1rem;
-  /* Gradient di default; per immagine:
-     background: url('../images/hero-bg.jpg') center/cover no-repeat; */
+  /* Scegli se usare immagine o gradient */
+  /* background: url('../images/hero-bg.jpg') center/cover no-repeat; */
   background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
   align-items: center;
@@ -3355,7 +3355,7 @@ input, select, textarea {
   font-size: 3rem;
   line-height: 1.2;
   margin-bottom: 1rem;
-  /* forza la rottura di riga e spazio */
+  /* Forza a capo sulla parola dopo <br/> */
   white-space: normal;
 }
 
@@ -3364,18 +3364,17 @@ input, select, textarea {
   margin-bottom: 2rem;
 }
 
-/* Pulsante Scorri con animazione */
+/* “Scorri” rimbalza */
 .scrolldown {
   display: inline-block;
   animation: bounce 2s infinite;
 }
-
 @keyframes bounce {
   0%, 100% { transform: translateY(0); }
   50%      { transform: translateY(-10px); }
 }
 
-/* Spazio sotto il hero per evitare sovrapposizione */
+/* Spazio per separare hero e tiles */
 #tiles {
   margin-top: 2rem;
 }
