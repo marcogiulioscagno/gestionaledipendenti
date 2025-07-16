@@ -1,11 +1,10 @@
 <!DOCTYPE HTML>
-<!-- report.html -->
+<!-- report.html – Gestionale Dipendenti -->
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <title>Report – Gestionale Dipendenti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Phantom CSS (opzionale) -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 </head>
@@ -60,13 +59,13 @@
       }, {});
     }
 
-    // Genera una chart in un canvas off-screen e ritorna il dataURL
+    // Genera una chart in un canvas off-screen e ritorna il dataURL completo
     function makeChartImage(title, dataObj) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const labels = Object.keys(dataObj);
-      const data = Object.values(dataObj);
-      const bg = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
+      const data   = Object.values(dataObj);
+      const bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
       new Chart(ctx, {
         type: 'pie',
         data: { labels, datasets:[{ data, backgroundColor:bg }] },
@@ -77,10 +76,13 @@
 
     async function generateExcel() {
       // 1) Fetch dati
-      const [{ data: statsData }, { data: listData }] = await Promise.all([
+      const [{ data: statsData, error: err1 }, { data: listData, error: err2 }] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
         sb.from(TABLE).select('*').order('created_at',{ascending:false})
       ]);
+      if (err1 || err2) {
+        return alert('Errore caricamento dati: ' + (err1||err2).message);
+      }
 
       // 2) Crea workbook
       const wb = new ExcelJS.Workbook();
@@ -89,10 +91,7 @@
 
       // ————— Sheet Statistiche —————
       const ws1 = wb.addWorksheet('Statistiche');
-      // lasciamo un po’ di margine
       let rowPointer = 1;
-
-      // per ogni statistica, genera immagine e inseriscila
       const statsConfigs = [
         ['AS per Sede',     countBy(statsData,'sede')],
         ['AS per Team',     countBy(statsData,'team')],
@@ -102,14 +101,11 @@
       ];
 
       for (const [title, dataObj] of statsConfigs) {
-        // crea immagine
-        const imgData = makeChartImage(title, dataObj);
-        // aggiungi all’Excel come immagine
-        const imageId = wb.addImage({
-          base64: imgData,
-          extension: 'png'
-        });
-        // posizionamento: due colonne per immagine
+        // genera dataURL completo
+        const imgFull = makeChartImage(title, dataObj);
+        // **DIFFERENZA**: strip del prefix "data:image/png;base64,"
+        const imgBase64 = imgFull.split(',')[1];
+        const imageId = wb.addImage({ base64: imgBase64, extension: 'png' });
         ws1.addImage(imageId, {
           tl: { col: 0, row: rowPointer },
           br: { col: 5, row: rowPointer + 15 }
@@ -119,12 +115,7 @@
 
       // ————— Sheet Dipendenti —————
       const ws2 = wb.addWorksheet('Dipendenti');
-      // intestazioni
-      ws2.addRow([
-        'Nome','Cognome','Team','Ruolo',
-        'Sede','Contratto','Ambito','Clienti','Stato'
-      ]);
-      // dati riga per riga
+      ws2.addRow(['Nome','Cognome','Team','Ruolo','Sede','Contratto','Ambito','Clienti','Stato']);
       listData.forEach(r => {
         ws2.addRow([
           r.nome,
@@ -133,8 +124,8 @@
           r.ruolo || '',
           r.sede,
           r.contratto,
-          Array.isArray(r.ambito)? r.ambito.join(', '): (r.ambito||''),
-          Array.isArray(r.clienti)? r.clienti.join(', '): (r.clienti||''),
+          Array.isArray(r.ambito) ? r.ambito.join(', ') : (r.ambito||''),
+          Array.isArray(r.clienti) ? r.clienti.join(', ') : (r.clienti||''),
           r.stato || ''
         ]);
       });
@@ -145,7 +136,7 @@
     }
 
     document.getElementById('btnExport')
-      .addEventListener('click', () => generateExcel());
+      .addEventListener('click', generateExcel);
   })();
   </script>
 
