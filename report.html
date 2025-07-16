@@ -1,19 +1,19 @@
 <!DOCTYPE HTML>
-<!--
-  report.html – Gestionale Dipendenti
-  Genera un report Excel con grafici e lista dipendenti
--->
+<!-- report.html – Excel con grafici e lista AS -->
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <title>Report – Gestionale Dipendenti</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Phantom CSS -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 </head>
 <body>
 
   <div id="wrapper">
+
+    <!-- Header -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
@@ -21,13 +21,15 @@
       </div>
     </header>
 
-    <div id="main">
+    <!-- Pulsante Export -->
+    <section id="main" class="wrapper">
       <div class="inner">
-        <p>Clicca per scaricare il report Excel con grafici e lista dipendenti:</p>
+        <p>Clicca per scaricare il report Excel con grafici e lista AS:</p>
         <button id="btnExport" class="button primary">Scarica Report</button>
       </div>
-    </div>
+    </section>
 
+    <!-- Footer -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -35,77 +37,76 @@
         </ul>
       </div>
     </footer>
+
   </div>
 
-  <!-- Caricamento librerie -->
+  <!-- Librerie UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.3.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-  <!-- Script inline per generare l’Excel -->
+  <!-- Script per generare il report -->
   <script>
   (async () => {
-    console.log('🚀 report.html avviato');
-    console.log('– ExcelJS:', typeof ExcelJS !== 'undefined' ? 'OK' : 'MANCANTE');
-    console.log('– saveAs:', typeof saveAs !== 'undefined' ? 'OK' : 'MANCANTE');
+    console.log('🚀 report.html caricato');
 
     // 1) Configura Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…' // la tua chiave anonima
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…' // la tua chiave anonima completa
     );
     const TABLE = 'application_specialists';
 
-    // 2) Conteggio per statistica
+    // 2) Funzione di utilità per contare
     function countBy(arr, key) {
-      return arr.reduce((map, r) => {
+      return arr.reduce((m, r) => {
         const items = Array.isArray(r[key]) ? r[key] : [r[key]];
-        items.filter(v => v).forEach(v => map[v] = (map[v]||0) + 1);
-        return map;
+        items.filter(v => v).forEach(v => m[v] = (m[v]||0) + 1);
+        return m;
       }, {});
     }
 
-    // 3) Crea un pie chart off-screen e ritorna solo base64
+    // 3) Crea un chart off-screen e ritorna solo base64 (senza prefix)
     function makeChartImage(title, dataObj) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
-      const labels = Object.keys(dataObj);
-      const values = Object.values(dataObj);
-      const bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
+      const labels = Object.keys(dataObj), values = Object.values(dataObj);
+      const bg = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
       new Chart(ctx, {
         type: 'pie',
         data: { labels, datasets:[{ data: values, backgroundColor: bg }] },
         options: { plugins:{ title:{ display:true, text:title }, legend:{ position:'bottom' } } }
       });
       const full = canvas.toDataURL('image/png');
-      // splitto in "data:image/png;base64,XXX" => ["data:...", "XXX"]
-      const parts = full.split(',');
-      console.log(`🖼️ ${title}: ${parts[1].length} bytes`);
-      return parts[1];
+      return full.split(',')[1];  // ritorna solo il base64
     }
 
-    // 4) Genera e scarica il file Excel
+    // 4) Genera e scarica l’Excel
     async function generateExcel() {
-      console.log('📦 Inizio generazione report');
-      // Fetch dei dati
-      const [ statRes, listRes ] = await Promise.all([
-        sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
-        sb.from(TABLE).select('*').order('created_at', { ascending: false })
-      ]);
-      if (statRes.error || listRes.error) {
-        const err = statRes.error || listRes.error;
-        console.error('❌ Errore fetch:', err);
-        return alert('Errore caricamento dati: ' + err.message);
+      console.log('📦 Generazione report iniziata');
+      let statRes, listRes;
+      try {
+        statRes = await sb.from(TABLE).select('sede,team,contratto,ambito,clienti');
+        listRes = await sb.from(TABLE).select('*').order('created_at',{ascending:false});
+      } catch(err) {
+        console.error('❌ Errore rete/Supabase:', err);
+        return alert('Errore di rete o Supabase: ' + err.message);
       }
-      const statsData = statRes.data, listData = listRes.data;
+      if (statRes.error || listRes.error) {
+        console.error('❌ Supabase error:', statRes.error||listRes.error);
+        return alert('Errore fetch dati: ' + (statRes.error||listRes.error).message);
+      }
 
-      // Workbook
+      const statsData = statRes.data, listData = listRes.data;
+      console.log('✅ Dati caricati:', statsData.length, 'statistiche e', listData.length, 'dipendenti');
+
+      // Crea workbook
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
 
-      // ———— Sheet “Statistiche” ————
+      // Sheet 1: Statistiche
       const ws1 = wb.addWorksheet('Statistiche');
       let row = 0;
       const configs = [
@@ -117,39 +118,48 @@
       ];
       for (const [title, dataObj] of configs) {
         const b64 = makeChartImage(title, dataObj);
+        console.log(`🖼️ Creata immagine ${title}, ${b64.length} bytes`);
         const imgId = wb.addImage({ base64: b64, extension: 'png' });
-        ws1.addImage(imgId, {
-          tl: { col: 0, row },
-          br: { col: 5, row: row + 15 }
-        });
+        ws1.addImage(imgId, { tl:{col:0,row}, br:{col:5,row:row+15} });
         row += 16;
       }
 
-      // ———— Sheet “Dipendenti” ————
+      // Sheet 2: Dipendenti
       const ws2 = wb.addWorksheet('Dipendenti');
       ws2.addRow(['Nome','Cognome','Team','Ruolo','Sede','Contratto','Ambito','Clienti','Stato']);
       listData.forEach(r => {
         ws2.addRow([
-          r.nome, r.cognome, r.team, r.ruolo || '',
-          r.sede, r.contratto,
-          Array.isArray(r.ambito)? r.ambito.join(', '): (r.ambito||''),
-          Array.isArray(r.clienti)? r.clienti.join(', '): (r.clienti||''),
+          r.nome,
+          r.cognome,
+          r.team,
+          r.ruolo || '',
+          r.sede,
+          r.contratto,
+          Array.isArray(r.ambito) ? r.ambito.join(', ') : (r.ambito||''),
+          Array.isArray(r.clienti) ? r.clienti.join(', ') : (r.clienti||''),
           r.stato || ''
         ]);
       });
 
-      // Esporta
-      const buf = await wb.xlsx.writeBuffer();
-      console.log('✅ Workbook creato, dimensione:', buf.byteLength);
-      saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
-      console.log('🚀 Download avviato');
+      // Esporta e scarica
+      try {
+        const buf = await wb.xlsx.writeBuffer();
+        console.log('✅ Workbook pronto, buffer size:', buf.byteLength);
+        saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
+        console.log('🚀 Download avviato');
+      } catch(err) {
+        console.error('❌ Errore generazione Excel:', err);
+        alert('Errore generazione file: ' + err.message);
+      }
     }
 
-    document.getElementById('btnExport').addEventListener('click', generateExcel);
+    document.getElementById('btnExport')
+            .addEventListener('click', generateExcel);
+
   })();
   </script>
 
-  <!-- Phantom Scripts (se usano) -->
+  <!-- Phantom JS -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
