@@ -20,12 +20,12 @@
     </header>
 
     <!-- Body -->
-    <div id="main">
+    <section id="main" class="wrapper">
       <div class="inner">
-        <p>Clicca qui sotto per scaricare un report Excel con statistiche e elenco dipendenti.</p>
+        <p>Clicca sotto per scaricare il report Excel con statistiche e elenco dipendenti.</p>
         <button id="btnExport" class="button primary">Scarica Report</button>
       </div>
-    </div>
+    </section>
 
     <!-- Footer -->
     <footer id="footer">
@@ -37,54 +37,59 @@
     </footer>
   </div>
 
-  <!-- Dipendenze -->
+  <!-- Dipendenze UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2/dist/FileSaver.min.js"></script>
 
   <script>
   (async () => {
-    // 1) Supabase
+    // 1) Configura Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
     );
     const TABLE = 'application_specialists';
 
-    // 2) conteggi
+    // 2) Conta occorrenze
     function countBy(arr, key) {
-      return arr.reduce((m, r) => {
-        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
-        vals.filter(v=>v).forEach(v => m[v] = (m[v]||0) + 1);
+      return arr.reduce((m,r) => {
+        const vs = Array.isArray(r[key])? r[key]: [r[key]];
+        vs.filter(v=>v).forEach(v=> m[v]=(m[v]||0)+1);
         return m;
       }, {});
     }
 
-    // 3) chart→canvas→base64 (STRINGA COMPLETA)
-    function makeChartDataURL(title, dataObj) {
+    // 3) Crea un chart off-screen, toDataURL e strip prefix
+    function makeBase64Png(title, obj) {
       const c = document.createElement('canvas');
       const ctx = c.getContext('2d');
-      const labels = Object.keys(dataObj),
-            data   = Object.values(dataObj),
-            bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
+      const labels = Object.keys(obj),
+            data   = Object.values(obj),
+            bg     = labels.map((_,i)=>`hsl(${i*360/labels.length},70%,60%)`);
       new Chart(ctx, {
-        type: 'pie',
-        data: { labels, datasets:[{ data, backgroundColor:bg }] },
+        type:'pie',
+        data:{ labels, datasets:[{ data, backgroundColor:bg }] },
         options:{ plugins:{ title:{ display:true,text:title }, legend:{ position:'bottom' } } }
       });
-      return c.toDataURL('image/png');
+      // full data URL “data:image/png;base64,XXX”
+      const full = c.toDataURL('image/png');
+      return full.split(',')[1];  // prendo solo “XXX”
     }
 
-    // 4) genera Excel
+    // 4) Genera e scarica Excel via <a download>
     async function generateExcel() {
-      // fetch dati
-      const [{ data: statsData }, { data: listData }] = await Promise.all([
+      // a) prendo i record
+      const [ stR, liR ] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
         sb.from(TABLE).select('*').order('created_at',{ascending:false})
       ]);
+      if (stR.error || liR.error) {
+        return alert('Errore fetch dati: ' + (stR.error||liR.error).message);
+      }
+      const statsData = stR.data, listData = liR.data;
 
-      // workbook
+      // b) crea workbook
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
@@ -92,24 +97,18 @@
       // — Statistiche —
       const ws1 = wb.addWorksheet('Statistiche');
       let rp = 1;
-      const configs = [
+      [
         ['AS per Sede',      countBy(statsData,'sede')],
         ['AS per Team',      countBy(statsData,'team')],
         ['AS per Contratto', countBy(statsData,'contratto')],
         ['AS per Ambito',    countBy(statsData,'ambito')],
         ['AS per Clienti',   countBy(statsData,'clienti')]
-      ];
-      for (const [title, obj] of configs) {
-        // ottieni dataURL completo e ne prendo solo il base64
-        const fullURL = makeChartDataURL(title, obj);
-        const base64  = fullURL.split(',')[1];
-        const imgId   = wb.addImage({ base64, extension:'png' });
-        ws1.addImage(imgId, {
-          tl: { col:0, row:rp },
-          br: { col:5, row:rp+15 }
-        });
+      ].forEach(([title,obj]) => {
+        const b64 = makeBase64Png(title,obj);
+        const imgId = wb.addImage({ base64:b64, extension:'png' });
+        ws1.addImage(imgId, { tl:{col:0,row:rp}, br:{col:5,row:rp+15} });
         rp += 16;
-      }
+      });
 
       // — Dipendenti —
       const ws2 = wb.addWorksheet('Dipendenti');
@@ -122,18 +121,26 @@
           r.ruolo||'',
           r.sede,
           r.contratto,
-          Array.isArray(r.ambito)? r.ambito.join(', '): (r.ambito||''),
-          Array.isArray(r.clienti)? r.clienti.join(', '): (r.clienti||''),
+          Array.isArray(r.ambito)?r.ambito.join(', '):(r.ambito||''),
+          Array.isArray(r.clienti)?r.clienti.join(', '):(r.clienti||''),
           r.stato||''
         ]);
       });
 
-      // download
+      // c) writeBuffer & download
       const buf = await wb.xlsx.writeBuffer();
-      saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
+      const blob = new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = 'Report_Gestionale_Dipendenti.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
     }
 
-    document.getElementById('btnExport').onclick = generateExcel;
+    document.getElementById('btnExport').addEventListener('click', generateExcel);
   })();
   </script>
 
