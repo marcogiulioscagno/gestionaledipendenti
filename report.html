@@ -11,7 +11,7 @@
 <body>
 
   <div id="wrapper">
-    <!-- Header small con back -->
+    <!-- Header -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
@@ -19,13 +19,15 @@
       </div>
     </header>
 
-    <div id="main">
+    <!-- Pulsante Export -->
+    <section id="main" class="wrapper">
       <div class="inner">
-        <p>Clicca qui sotto per scaricare un report in Excel con le statistiche e l’elenco dipendenti.</p>
+        <p>Clicca sotto per scaricare il report Excel con grafici e elenco AS:</p>
         <button id="btnExport" class="button primary">Scarica Report</button>
       </div>
-    </div>
+    </section>
 
+    <!-- Footer -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -35,7 +37,7 @@
     </footer>
   </div>
 
-  <!-- Dipendenze -->
+  <!-- Dipendenze UMD -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
@@ -43,77 +45,82 @@
 
   <script>
   (async () => {
-    // Config Supabase
+    // 1) Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…' // la tua chiave anonima completa
     );
     const TABLE = 'application_specialists';
 
-    // Utility: calcola conteggi
+    // 2) Helper per conteggi
     function countBy(arr, key) {
       return arr.reduce((m, r) => {
-        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
-        vals.filter(v=>v).forEach(v => m[v] = (m[v]||0) + 1);
+        const vs = Array.isArray(r[key]) ? r[key] : [r[key]];
+        vs.filter(v => v).forEach(v => m[v] = (m[v]||0) + 1);
         return m;
       }, {});
     }
 
-    // Genera una chart in un canvas off-screen e ritorna il dataURL completo
-    function makeChartImage(title, dataObj) {
+    // 3) Crea chart off-screen, disabilita animazione e ritorna full dataURL
+    function makeChartImage(title, obj) {
       const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const labels = Object.keys(dataObj);
-      const data   = Object.values(dataObj);
-      const bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
+      const ctx    = canvas.getContext('2d');
+      const labels = Object.keys(obj),
+            data   = Object.values(obj),
+            bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
       new Chart(ctx, {
         type: 'pie',
-        data: { labels, datasets:[{ data, backgroundColor:bg }] },
-        options:{ plugins:{ title:{ display:true, text:title }, legend:{ position:'bottom' } } }
+        data: { labels, datasets: [{ data, backgroundColor: bg }] },
+        options: {
+          animation: false,            // <— fondamentalissimo!
+          plugins: {
+            title: { display: true, text: title },
+            legend: { position: 'bottom' }
+          }
+        }
       });
+      // Ora il canvas è già disegnato, possiamo estrarre il PNG
       return canvas.toDataURL('image/png');
     }
 
+    // 4) Generazione e download Excel
     async function generateExcel() {
-      // 1) Fetch dati
-      const [{ data: statsData, error: err1 }, { data: listData, error: err2 }] = await Promise.all([
+      // fetch dati
+      const [ sRes, lRes ] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
         sb.from(TABLE).select('*').order('created_at',{ascending:false})
       ]);
-      if (err1 || err2) {
-        return alert('Errore caricamento dati: ' + (err1||err2).message);
+      if (sRes.error || lRes.error) {
+        return alert('Errore caricamento dati: ' + (sRes.error||lRes.error).message);
       }
+      const statsData = sRes.data, listData = lRes.data;
 
-      // 2) Crea workbook
+      // crea workbook
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
 
-      // ————— Sheet Statistiche —————
+      // — Sheet Statistiche —
       const ws1 = wb.addWorksheet('Statistiche');
-      let rowPointer = 1;
-      const statsConfigs = [
-        ['AS per Sede',     countBy(statsData,'sede')],
-        ['AS per Team',     countBy(statsData,'team')],
-        ['AS per Contratto',countBy(statsData,'contratto')],
-        ['AS per Ambito',   countBy(statsData,'ambito')],
-        ['AS per Clienti',  countBy(statsData,'clienti')]
-      ];
-
-      for (const [title, dataObj] of statsConfigs) {
-        // genera dataURL completo
-        const imgFull = makeChartImage(title, dataObj);
-        // **DIFFERENZA**: strip del prefix "data:image/png;base64,"
-        const imgBase64 = imgFull.split(',')[1];
-        const imageId = wb.addImage({ base64: imgBase64, extension: 'png' });
-        ws1.addImage(imageId, {
-          tl: { col: 0, row: rowPointer },
-          br: { col: 5, row: rowPointer + 15 }
+      let rp = 1;
+      [
+        ['AS per Sede',      countBy(statsData,'sede')],
+        ['AS per Team',      countBy(statsData,'team')],
+        ['AS per Contratto', countBy(statsData,'contratto')],
+        ['AS per Ambito',    countBy(statsData,'ambito')],
+        ['AS per Clienti',   countBy(statsData,'clienti')]
+      ].forEach(([title,obj]) => {
+        const full = makeChartImage(title,obj);
+        const b64  = full.split(',')[1];      // strip prefix
+        const img  = wb.addImage({ base64:b64, extension:'png' });
+        ws1.addImage(img, {
+          tl: { col: 0, row: rp },
+          br: { col: 5, row: rp + 15 }
         });
-        rowPointer += 16;
-      }
+        rp += 16;
+      });
 
-      // ————— Sheet Dipendenti —————
+      // — Sheet Dipendenti —
       const ws2 = wb.addWorksheet('Dipendenti');
       ws2.addRow(['Nome','Cognome','Team','Ruolo','Sede','Contratto','Ambito','Clienti','Stato']);
       listData.forEach(r => {
@@ -124,23 +131,22 @@
           r.ruolo || '',
           r.sede,
           r.contratto,
-          Array.isArray(r.ambito) ? r.ambito.join(', ') : (r.ambito||''),
-          Array.isArray(r.clienti) ? r.clienti.join(', ') : (r.clienti||''),
+          Array.isArray(r.ambito)? r.ambito.join(', '):(r.ambito||''),
+          Array.isArray(r.clienti)? r.clienti.join(', '):(r.clienti||''),
           r.stato || ''
         ]);
       });
 
-      // 3) Esporta e scarica
+      // writeBuffer & download
       const buf = await wb.xlsx.writeBuffer();
       saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
     }
 
-    document.getElementById('btnExport')
-      .addEventListener('click', generateExcel);
+    document.getElementById('btnExport').addEventListener('click', generateExcel);
   })();
   </script>
 
-  <!-- Phantom JS -->
+  <!-- Phantom Scripts -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
