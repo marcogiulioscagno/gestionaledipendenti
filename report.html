@@ -19,7 +19,7 @@
       </div>
     </header>
 
-    <!-- Pulsante Export -->
+    <!-- Main -->
     <section id="main" class="wrapper">
       <div class="inner">
         <p>Clicca qui sotto per scaricare un report Excel con grafici e elenco dipendenti.</p>
@@ -37,7 +37,7 @@
     </footer>
   </div>
 
-  <!-- Librerie esterne -->
+  <!-- Dipendenze -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
@@ -45,26 +45,27 @@
 
   <script>
   (async () => {
-    // 1) Setup Supabase
-    const sb = supabase.createClient(
-      'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…' // la tua chiave anonima
-    );
+    // **1) Inserisci qui la tua chiave esatta al 100%, senza '…'**
+    const supabaseUrl = 'https://fzbpucvscnfyimefrvzs.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.'
+      + 'eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.'
+      + 'TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM';
+    const sb = supabase.createClient(supabaseUrl, supabaseKey);
     const TABLE = 'application_specialists';
 
-    // 2) Conta le occorrenze
+    // 2) Funzione di conteggio
     function countBy(arr, key) {
       return arr.reduce((m, r) => {
-        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
-        vals.filter(v=>v).forEach(v => m[v]=(m[v]||0)+1);
+        const vs = Array.isArray(r[key]) ? r[key] : [r[key]];
+        vs.filter(v => v).forEach(v => m[v] = (m[v]||0) + 1);
         return m;
       }, {});
     }
 
-    // 3) Renderizza un pie in un canvas off-screen e torna l’intero data-URL
+    // 3) Crea un pie-chart off-screen e restituisci il dataURL
     function makeChartDataURL(title, dataObj) {
-      const c = document.createElement('canvas');
-      const ctx = c.getContext('2d');
+      const canvas = document.createElement('canvas');
+      const ctx    = canvas.getContext('2d');
       const labels = Object.keys(dataObj);
       const data   = Object.values(dataObj);
       const bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
@@ -79,22 +80,23 @@
           }
         }
       });
-      return c.toDataURL('image/png');
+      return canvas.toDataURL('image/png');
     }
 
-    // 4) Genera e scarica l’Excel
+    // 4) Genera e scarica Excel
     async function generateExcel() {
-      // a) Prendi dati Supabase
-      const [statRes, listRes] = await Promise.all([
+      // **Fetch dei dati**
+      const [statsRes, listRes] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
-        sb.from(TABLE).select('*').order('created_at',{ascending:false})
+        sb.from(TABLE).select('*').order('created_at', { ascending: false })
       ]);
-      if (statRes.error || listRes.error) {
-        return alert('Errore caricamento dati: ' + (statRes.error||listRes.error).message);
+      if (statsRes.error || listRes.error) {
+        return alert('Errore caricamento dati: ' 
+          + (statsRes.error || listRes.error).message);
       }
-      const statsData = statRes.data, listData = listRes.data;
+      const statsData = statsRes.data, listData = listRes.data;
 
-      // b) Crea Workbook
+      // **Crea nuovo Workbook**
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
@@ -103,18 +105,18 @@
       const ws1 = wb.addWorksheet('Statistiche');
       let rowPtr = 1;
       [
-        ['AS per Sede',      countBy(statsData,'sede')],
-        ['AS per Team',      countBy(statsData,'team')],
-        ['AS per Contratto', countBy(statsData,'contratto')],
-        ['AS per Ambito',    countBy(statsData,'ambito')],
-        ['AS per Clienti',   countBy(statsData,'clienti')]
-      ].forEach(([title,obj]) => {
-        const dataURL = makeChartDataURL(title,obj);
-        // **LA DIFFERENZA**: uso `image:` con l’intero data-URL
-        const imageId = wb.addImage({ image: dataURL, extension:'png' });
-        ws1.addImage(imageId, {
-          tl: { col:0, row:rowPtr },
-          br: { col:5, row:rowPtr + 15 }
+        ['AS per Sede',      countBy(statsData, 'sede')],
+        ['AS per Team',      countBy(statsData, 'team')],
+        ['AS per Contratto', countBy(statsData, 'contratto')],
+        ['AS per Ambito',    countBy(statsData, 'ambito')],
+        ['AS per Clienti',   countBy(statsData, 'clienti')]
+      ].forEach(([title, obj]) => {
+        const dataURL = makeChartDataURL(title, obj);
+        // **Passa l’intero dataURL** come `image:`
+        const imgId = wb.addImage({ image: dataURL, extension: 'png' });
+        ws1.addImage(imgId, {
+          tl: { col: 0, row: rowPtr },
+          br: { col: 5, row: rowPtr + 15 }
         });
         rowPtr += 16;
       });
@@ -127,25 +129,26 @@
           r.nome,
           r.cognome,
           r.team,
-          r.ruolo  || '',
+          r.ruolo || '',
           r.sede,
           r.contratto,
-          Array.isArray(r.ambito)? r.ambito.join(', '):(r.ambito||''),
-          Array.isArray(r.clienti)? r.clienti.join(', '):(r.clienti||''),
-          r.stato  || ''
+          Array.isArray(r.ambito) ? r.ambito.join(', ') : (r.ambito || ''),
+          Array.isArray(r.clienti) ? r.clienti.join(', ') : (r.clienti || ''),
+          r.stato || ''
         ]);
       });
 
-      // c) Scrivi e scarica
+      // **Scrivi e salva**
       const buf = await wb.xlsx.writeBuffer();
       saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
     }
 
-    document.getElementById('btnExport').addEventListener('click', generateExcel);
+    document.getElementById('btnExport')
+      .addEventListener('click', generateExcel);
   })();
   </script>
 
-  <!-- Phantom JS (rimane invariato) -->
+  <!-- Phantom JS -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
