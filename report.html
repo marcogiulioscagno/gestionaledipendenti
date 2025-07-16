@@ -8,7 +8,7 @@
   <meta charset="utf-8" />
   <title>Report – Gestionale Dipendenti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-  <!-- Phantom CSS (se usi lo stesso layout) -->
+  <!-- Phantom CSS (opzionale) -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 </head>
@@ -43,23 +43,24 @@
 
   </div>
 
-  <!-- Librerie necessarie -->
+  <!-- Caricamento librerie -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/file-saver@2/dist/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 
   <!-- Script inline per generare l’Excel -->
   <script>
   (async () => {
-    // Configura Supabase
+    console.log('Report script avviato');
+    // 1) Configura Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
     );
     const TABLE = 'application_specialists';
 
-    // Conta occorrenze per un campo
+    // 2) Helper: conta occorrenze per un campo
     function countBy(arr, key) {
       return arr.reduce((map, r) => {
         const items = Array.isArray(r[key]) ? r[key] : [r[key]];
@@ -70,7 +71,7 @@
       }, {});
     }
 
-    // Crea un chart off-screen e ritorna solo la parte base64 (senza prefix)
+    // 3) Crea chart off-screen e restituisce solo la porzione base64
     function makeChartImage(title, dataObj) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -82,31 +83,37 @@
         data: { labels, datasets:[{ data, backgroundColor:bg }] },
         options:{ plugins:{ title:{ display:true,text:title }, legend:{ position:'bottom' } } }
       });
-      // toDataURL() ritorna "data:image/png;base64,AAAA..."; splittiamo
-      return canvas.toDataURL('image/png').split(',')[1];
+      // toDataURL() restituisce "data:image/png;base64,AAAA..."
+      // splitto e torno solo il base64
+      const full = canvas.toDataURL('image/png');
+      const parts = full.split(',');
+      console.log(`Generata immagine ${title}, size: ${parts[1].length} bytes`);
+      return parts[1];
     }
 
-    // Genera e scarica il file Excel
+    // 4) Funzione principale per generare e scaricare Excel
     async function generateExcel() {
-      // 1) Preleva i dati
-      const [{ data: statsData, error: statErr }, { data: listData, error: listErr }] = await Promise.all([
+      console.log('Inizio generazione report');
+      // Prelevo dati statistici e lista
+      const [statsRes, listRes] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
         sb.from(TABLE).select('*').order('created_at',{ascending:false})
       ]);
-      if (statErr || listErr) {
-        alert('Errore nel caricamento dati: ' + (statErr?.message || listErr?.message));
-        return;
+      if (statsRes.error || listRes.error) {
+        console.error(statsRes.error || listRes.error);
+        return alert('Errore fetch dati: ' + (statsRes.error||listRes.error).message);
       }
+      const statsData = statsRes.data;
+      const listData  = listRes.data;
 
-      // 2) Crea il workbook
+      // Crea workbook
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
 
-      // —— Sheet 1: Statistiche ——
+      // — Sheet “Statistiche” —
       const ws1 = wb.addWorksheet('Statistiche');
       let row = 0;
-
       const statsConfigs = [
         ['AS per Sede',     countBy(statsData,'sede')],
         ['AS per Team',     countBy(statsData,'team')],
@@ -124,7 +131,7 @@
         row += 16;
       }
 
-      // —— Sheet 2: Dipendenti ——
+      // — Sheet “Dipendenti” —
       const ws2 = wb.addWorksheet('Dipendenti');
       ws2.addRow(['Nome','Cognome','Team','Ruolo','Sede','Contratto','Ambito','Clienti','Stato']);
       listData.forEach(r => {
@@ -132,7 +139,7 @@
           r.nome,
           r.cognome,
           r.team,
-          r.ruolo || '',
+          r.ruolo||'',
           r.sede,
           r.contratto,
           Array.isArray(r.ambito)? r.ambito.join(', '): (r.ambito || ''),
@@ -141,13 +148,14 @@
         ]);
       });
 
-      // 3) Esporta e scarica
-      const buf = await wb.xlsx.writeBuffer();
-      saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
+      // Esporta e scarica
+      const buffer = await wb.xlsx.writeBuffer();
+      console.log('Workbook creato, dimensione buffer:', buffer.byteLength);
+      saveAs(new Blob([buffer]), 'Report_Gestionale_Dipendenti.xlsx');
+      console.log('Download avviato');
     }
 
-    document.getElementById('btnExport')
-      .addEventListener('click', generateExcel);
+    document.getElementById('btnExport').addEventListener('click', generateExcel);
   })();
   </script>
 
