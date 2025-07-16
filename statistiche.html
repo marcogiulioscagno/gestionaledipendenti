@@ -16,7 +16,6 @@
 </head>
 <body>
 
-  <!-- Wrapper -->
   <div id="wrapper">
 
     <!-- Header small con back -->
@@ -51,56 +50,44 @@
 
   </div>
 
-  <!-- Carico SUPABASE e CHART.JS PRIMA del mio script -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <!-- 1) Supabase UMD CORRETTO -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <!-- 2) Chart.js UMD CORRETTO -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 
-  <!-- Script inline per le statistiche -->
+  <!-- 3) Script INLINE per le statistiche -->
   <script>
-    // 1) Configuro Supabase
+    // Configura Supabase (usa la stessa chiave che funziona in dipendenti.html)
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
     );
-    console.log('SUPABASE CLIENT:', sb);
-
     const TABLE = 'application_specialists';
 
-    // 2) Al caricamento, disegno i grafici
     document.addEventListener('DOMContentLoaded', loadStats);
 
     async function loadStats() {
       const { data, error } = await sb
         .from(TABLE)
         .select('sede,team,contratto,ambito,clienti');
+      if (error) return alert('Errore statistiche: ' + error.message);
 
-      if (error) {
-        alert('Errore statistiche: ' + error.message);
-        return;
-      }
+      const countBy = key =>
+        data.reduce((m, r) => {
+          const items = Array.isArray(r[key]) ? r[key] : [r[key]];
+          items.filter(v => v).forEach(v => m[v] = (m[v]||0) + 1);
+          return m;
+        }, {});
 
-      renderPie('chartSede',     'AS per Sede',      countBy(data,'sede'));
-      renderPie('chartTeam',     'AS per Team',      countBy(data,'team'));
-      renderPie('chartContract', 'AS per Contratto', countBy(data,'contratto'));
-      renderPie('chartAmbito',   'AS per Ambito',    countBy(data,'ambito'));
-      renderPie('chartClients',  'AS per Clienti',   countBy(data,'clienti'));
+      renderPie('chartSede',     'AS per Sede',      countBy('sede'));
+      renderPie('chartTeam',     'AS per Team',      countBy('team'));
+      renderPie('chartContract', 'AS per Contratto', countBy('contratto'));
+      renderPie('chartAmbito',   'AS per Ambito',    countBy('ambito'));
+      renderPie('chartClients',  'AS per Clienti',   countBy('clienti'));
     }
 
-    // helper di conteggio
-    function countBy(arr, key) {
-      return arr.reduce((map, r) => {
-        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
-        vals.filter(v => v).forEach(v => {
-          map[v] = (map[v] || 0) + 1;
-        });
-        return map;
-      }, {});
-    }
-
-    // disegno le pie e loggo per debug
     const charts = {};
     function renderPie(id, title, dataObj) {
-      console.log('Rendering pie', id, dataObj);
       const el = document.getElementById(id);
       if (!el) return;
       const ctx = el.getContext('2d');
@@ -111,12 +98,7 @@
       charts[id] = new Chart(ctx, {
         type: 'pie',
         data: { labels, datasets:[{ data: values, backgroundColor: bg }] },
-        options: {
-          plugins: {
-            title:  { display:true, text:title },
-            legend: { position:'bottom' }
-          }
-        }
+        options:{ plugins:{ title:{ display:true,text:title }, legend:{ position:'bottom' } } }
       });
     }
   </script>
