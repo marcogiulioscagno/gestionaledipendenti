@@ -22,7 +22,7 @@
     <!-- Pulsante Export -->
     <section id="main" class="wrapper">
       <div class="inner">
-        <p>Clicca sotto per scaricare il report Excel con grafici e elenco AS:</p>
+        <p>Clicca qui sotto per scaricare un report Excel con grafici e elenco dipendenti.</p>
         <button id="btnExport" class="button primary">Scarica Report</button>
       </div>
     </section>
@@ -37,7 +37,7 @@
     </footer>
   </div>
 
-  <!-- Dipendenze UMD -->
+  <!-- Librerie esterne -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
@@ -45,64 +45,63 @@
 
   <script>
   (async () => {
-    // 1) Supabase
+    // 1) Setup Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…' // la tua chiave anonima completa
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…' // la tua chiave anonima
     );
     const TABLE = 'application_specialists';
 
-    // 2) Helper per conteggi
+    // 2) Conta le occorrenze
     function countBy(arr, key) {
       return arr.reduce((m, r) => {
-        const vs = Array.isArray(r[key]) ? r[key] : [r[key]];
-        vs.filter(v => v).forEach(v => m[v] = (m[v]||0) + 1);
+        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
+        vals.filter(v=>v).forEach(v => m[v]=(m[v]||0)+1);
         return m;
       }, {});
     }
 
-    // 3) Crea chart off-screen, disabilita animazione e ritorna full dataURL
-    function makeChartImage(title, obj) {
-      const canvas = document.createElement('canvas');
-      const ctx    = canvas.getContext('2d');
-      const labels = Object.keys(obj),
-            data   = Object.values(obj),
-            bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
+    // 3) Renderizza un pie in un canvas off-screen e torna l’intero data-URL
+    function makeChartDataURL(title, dataObj) {
+      const c = document.createElement('canvas');
+      const ctx = c.getContext('2d');
+      const labels = Object.keys(dataObj);
+      const data   = Object.values(dataObj);
+      const bg     = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
       new Chart(ctx, {
         type: 'pie',
         data: { labels, datasets: [{ data, backgroundColor: bg }] },
         options: {
-          animation: false,            // <— fondamentalissimo!
+          animation: false,
           plugins: {
             title: { display: true, text: title },
             legend: { position: 'bottom' }
           }
         }
       });
-      // Ora il canvas è già disegnato, possiamo estrarre il PNG
-      return canvas.toDataURL('image/png');
+      return c.toDataURL('image/png');
     }
 
-    // 4) Generazione e download Excel
+    // 4) Genera e scarica l’Excel
     async function generateExcel() {
-      // fetch dati
-      const [ sRes, lRes ] = await Promise.all([
+      // a) Prendi dati Supabase
+      const [statRes, listRes] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
         sb.from(TABLE).select('*').order('created_at',{ascending:false})
       ]);
-      if (sRes.error || lRes.error) {
-        return alert('Errore caricamento dati: ' + (sRes.error||lRes.error).message);
+      if (statRes.error || listRes.error) {
+        return alert('Errore caricamento dati: ' + (statRes.error||listRes.error).message);
       }
-      const statsData = sRes.data, listData = lRes.data;
+      const statsData = statRes.data, listData = listRes.data;
 
-      // crea workbook
+      // b) Crea Workbook
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
 
-      // — Sheet Statistiche —
+      // — Sheet "Statistiche" —
       const ws1 = wb.addWorksheet('Statistiche');
-      let rp = 1;
+      let rowPtr = 1;
       [
         ['AS per Sede',      countBy(statsData,'sede')],
         ['AS per Team',      countBy(statsData,'team')],
@@ -110,17 +109,17 @@
         ['AS per Ambito',    countBy(statsData,'ambito')],
         ['AS per Clienti',   countBy(statsData,'clienti')]
       ].forEach(([title,obj]) => {
-        const full = makeChartImage(title,obj);
-        const b64  = full.split(',')[1];      // strip prefix
-        const img  = wb.addImage({ base64:b64, extension:'png' });
-        ws1.addImage(img, {
-          tl: { col: 0, row: rp },
-          br: { col: 5, row: rp + 15 }
+        const dataURL = makeChartDataURL(title,obj);
+        // **LA DIFFERENZA**: uso `image:` con l’intero data-URL
+        const imageId = wb.addImage({ image: dataURL, extension:'png' });
+        ws1.addImage(imageId, {
+          tl: { col:0, row:rowPtr },
+          br: { col:5, row:rowPtr + 15 }
         });
-        rp += 16;
+        rowPtr += 16;
       });
 
-      // — Sheet Dipendenti —
+      // — Sheet "Dipendenti" —
       const ws2 = wb.addWorksheet('Dipendenti');
       ws2.addRow(['Nome','Cognome','Team','Ruolo','Sede','Contratto','Ambito','Clienti','Stato']);
       listData.forEach(r => {
@@ -128,16 +127,16 @@
           r.nome,
           r.cognome,
           r.team,
-          r.ruolo || '',
+          r.ruolo  || '',
           r.sede,
           r.contratto,
           Array.isArray(r.ambito)? r.ambito.join(', '):(r.ambito||''),
           Array.isArray(r.clienti)? r.clienti.join(', '):(r.clienti||''),
-          r.stato || ''
+          r.stato  || ''
         ]);
       });
 
-      // writeBuffer & download
+      // c) Scrivi e scarica
       const buf = await wb.xlsx.writeBuffer();
       saveAs(new Blob([buf]), 'Report_Gestionale_Dipendenti.xlsx');
     }
@@ -146,7 +145,7 @@
   })();
   </script>
 
-  <!-- Phantom Scripts -->
+  <!-- Phantom JS (rimane invariato) -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
