@@ -1,18 +1,22 @@
 <!DOCTYPE HTML>
-<!-- report.html -->
+<!--
+  report.html – Gestionale Dipendenti
+  Genera un report Excel con grafici e lista dipendenti
+-->
 <html lang="it">
 <head>
   <meta charset="utf-8" />
   <title>Report – Gestionale Dipendenti</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Phantom CSS (opzionale) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <!-- Phantom CSS (se usi lo stesso layout) -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
 </head>
 <body>
 
   <div id="wrapper">
-    <!-- Header small con back -->
+
+    <!-- Header con back -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
@@ -20,13 +24,15 @@
       </div>
     </header>
 
+    <!-- Pulsante per esportare -->
     <div id="main">
       <div class="inner">
-        <p>Clicca qui sotto per scaricare un report in Excel con le statistiche e l’elenco dipendenti.</p>
+        <p>Clicca qui per scaricare il report Excel con grafici e lista dipendenti:</p>
         <button id="btnExport" class="button primary">Scarica Report</button>
       </div>
     </div>
 
+    <!-- Footer minimale -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -34,65 +40,73 @@
         </ul>
       </div>
     </footer>
+
   </div>
 
-  <!-- Dipendenze -->
+  <!-- Librerie necessarie -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2/dist/FileSaver.min.js"></script>
 
+  <!-- Script inline per generare l’Excel -->
   <script>
   (async () => {
-    // Config Supabase
+    // Configura Supabase
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
     );
     const TABLE = 'application_specialists';
 
-    // Utility: calcola conteggi
+    // Conta occorrenze per un campo
     function countBy(arr, key) {
-      return arr.reduce((m, r) => {
-        const vals = Array.isArray(r[key]) ? r[key] : [r[key]];
-        vals.filter(v=>v).forEach(v => m[v] = (m[v]||0) + 1);
-        return m;
+      return arr.reduce((map, r) => {
+        const items = Array.isArray(r[key]) ? r[key] : [r[key]];
+        items.filter(v => v).forEach(v => {
+          map[v] = (map[v] || 0) + 1;
+        });
+        return map;
       }, {});
     }
 
-    // Genera una chart in un canvas off-screen e ritorna il dataURL
+    // Crea un chart off-screen e ritorna solo la parte base64 (senza prefix)
     function makeChartImage(title, dataObj) {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       const labels = Object.keys(dataObj);
-      const data = Object.values(dataObj);
-      const bg = labels.map((_,i) => `hsl(${i*360/labels.length},70%,60%)`);
+      const data   = Object.values(dataObj);
+      const bg     = labels.map((_,i)=>`hsl(${i*360/labels.length},70%,60%)`);
       new Chart(ctx, {
         type: 'pie',
         data: { labels, datasets:[{ data, backgroundColor:bg }] },
-        options:{ plugins:{ title:{ display:true, text:title }, legend:{ position:'bottom' } } }
+        options:{ plugins:{ title:{ display:true,text:title }, legend:{ position:'bottom' } } }
       });
-      return canvas.toDataURL('image/png');
+      // toDataURL() ritorna "data:image/png;base64,AAAA..."; splittiamo
+      return canvas.toDataURL('image/png').split(',')[1];
     }
 
+    // Genera e scarica il file Excel
     async function generateExcel() {
-      // 1) Fetch dati
-      const [{ data: statsData }, { data: listData }] = await Promise.all([
+      // 1) Preleva i dati
+      const [{ data: statsData, error: statErr }, { data: listData, error: listErr }] = await Promise.all([
         sb.from(TABLE).select('sede,team,contratto,ambito,clienti'),
         sb.from(TABLE).select('*').order('created_at',{ascending:false})
       ]);
+      if (statErr || listErr) {
+        alert('Errore nel caricamento dati: ' + (statErr?.message || listErr?.message));
+        return;
+      }
 
-      // 2) Crea workbook
+      // 2) Crea il workbook
       const wb = new ExcelJS.Workbook();
       wb.creator = 'Gestionale Dipendenti';
       wb.created = new Date();
 
-      // ————— Sheet Statistiche —————
+      // —— Sheet 1: Statistiche ——
       const ws1 = wb.addWorksheet('Statistiche');
-      // lasciamo un po’ di margine
-      let rowPointer = 1;
+      let row = 0;
 
-      // per ogni statistica, genera immagine e inseriscila
       const statsConfigs = [
         ['AS per Sede',     countBy(statsData,'sede')],
         ['AS per Team',     countBy(statsData,'team')],
@@ -100,31 +114,19 @@
         ['AS per Ambito',   countBy(statsData,'ambito')],
         ['AS per Clienti',  countBy(statsData,'clienti')]
       ];
-
       for (const [title, dataObj] of statsConfigs) {
-        // crea immagine
-        const imgData = makeChartImage(title, dataObj);
-        // aggiungi all’Excel come immagine
-        const imageId = wb.addImage({
-          base64: imgData,
-          extension: 'png'
+        const b64 = makeChartImage(title, dataObj);
+        const imgId = wb.addImage({ base64: b64, extension: 'png' });
+        ws1.addImage(imgId, {
+          tl: { col: 0, row },
+          br: { col: 5, row: row + 15 }
         });
-        // posizionamento: due colonne per immagine
-        ws1.addImage(imageId, {
-          tl: { col: 0, row: rowPointer },
-          br: { col: 5, row: rowPointer + 15 }
-        });
-        rowPointer += 16;
+        row += 16;
       }
 
-      // ————— Sheet Dipendenti —————
+      // —— Sheet 2: Dipendenti ——
       const ws2 = wb.addWorksheet('Dipendenti');
-      // intestazioni
-      ws2.addRow([
-        'Nome','Cognome','Team','Ruolo',
-        'Sede','Contratto','Ambito','Clienti','Stato'
-      ]);
-      // dati riga per riga
+      ws2.addRow(['Nome','Cognome','Team','Ruolo','Sede','Contratto','Ambito','Clienti','Stato']);
       listData.forEach(r => {
         ws2.addRow([
           r.nome,
@@ -133,8 +135,8 @@
           r.ruolo || '',
           r.sede,
           r.contratto,
-          Array.isArray(r.ambito)? r.ambito.join(', '): (r.ambito||''),
-          Array.isArray(r.clienti)? r.clienti.join(', '): (r.clienti||''),
+          Array.isArray(r.ambito)? r.ambito.join(', '): (r.ambito || ''),
+          Array.isArray(r.clienti)? r.clienti.join(', '): (r.clienti || ''),
           r.stato || ''
         ]);
       });
@@ -145,11 +147,11 @@
     }
 
     document.getElementById('btnExport')
-      .addEventListener('click', () => generateExcel());
+      .addEventListener('click', generateExcel);
   })();
   </script>
 
-  <!-- Phantom JS -->
+  <!-- Phantom Scripts (se servono) -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
