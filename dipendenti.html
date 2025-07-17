@@ -32,38 +32,90 @@
 
         <!-- FORM (Phantom style “alt”) -->
         <section class="alt">
-          <form id="asForm">
+          <form id="asForm" name="asForm">
             <div class="fields">
+
               <div class="field half">
-                <input id="inName"     type="text" name="nome"     placeholder="Nome"       required />
+                <input id="inName"    type="text" name="nome"     placeholder="Nome"       required />
               </div>
               <div class="field half">
-                <input id="inSurname"  type="text" name="cognome"  placeholder="Cognome"    required />
+                <input id="inSurname" type="text" name="cognome"  placeholder="Cognome"    required />
               </div>
+
               <div class="field half">
-                <input id="inTeam"     type="text" name="team"     placeholder="Team"       required />
-              </div>
-              <div class="field half">
-                <input id="inRole"     type="text" name="ruolo"    placeholder="Ruolo" />
-              </div>
-              <div class="field half">
-                <input id="inSede"     type="text" name="sede"     placeholder="Sede"       required />
-              </div>
-              <div class="field half">
-                <select id="inContract" name="contratto">
-                  <option>Indeterminato</option>
-                  <option>Determinato</option>
+                <select id="inTeam" name="team" required>
+                  <option value="" disabled selected>Seleziona Team</option>
+                  <option>Team 1</option>
+                  <option>Team 2</option>
+                  <option>Team 3</option>
+                  <option>Team 4</option>
+                  <option>Team 5</option>
                 </select>
               </div>
+
               <div class="field half">
-                <input id="inAmbito"   type="text" name="ambito"   placeholder="Ambito (csv)" />
+                <select id="inRole" name="ruolo" required>
+                  <option value="" disabled selected>Seleziona Ruolo</option>
+                  <option>Ruolo 1</option>
+                  <option>Ruolo 2</option>
+                  <option>Ruolo 3</option>
+                  <option>Ruolo 4</option>
+                  <option>Ruolo 5</option>
+                </select>
               </div>
+
               <div class="field half">
-                <input id="inClients"  type="text" name="clienti"  placeholder="Clienti (csv)" />
+                <select id="inSede" name="sede" required>
+                  <option value="" disabled selected>Seleziona Sede</option>
+                  <option>Sede 1</option>
+                  <option>Sede 2</option>
+                  <option>Sede 3</option>
+                  <option>Sede 4</option>
+                  <option>Sede 5</option>
+                </select>
               </div>
+
               <div class="field half">
-                <input id="inState"    type="text" name="stato"    placeholder="Stato" />
+                <select id="inContract" name="contratto" required>
+                  <option value="" disabled selected>Seleziona Contratto</option>
+                  <option>Indeterminato</option>
+                  <option>Determinato</option>
+                  <option>Somministrato</option>
+                </select>
               </div>
+
+              <div class="field half">
+                <select id="inAmbito" name="ambito" required>
+                  <option value="" disabled selected>Seleziona Ambito</option>
+                  <option>Ambito 1</option>
+                  <option>Ambito 2</option>
+                  <option>Ambito 3</option>
+                  <option>Ambito 4</option>
+                  <option>Ambito 5</option>
+                </select>
+              </div>
+
+              <div class="field half">
+                <select id="inClients" name="clienti" required>
+                  <option value="" disabled selected>Seleziona Cliente</option>
+                  <option>Cliente 1</option>
+                  <option>Cliente 2</option>
+                  <option>Cliente 3</option>
+                  <option>Cliente 4</option>
+                  <option>Cliente 5</option>
+                </select>
+              </div>
+
+              <div class="field half">
+                <select id="inState" name="stato" required>
+                  <option value="" disabled selected>Seleziona Stato</option>
+                  <option>Assunto</option>
+                  <option>Rinnovato</option>
+                  <option>Non Rinnovato</option>
+                  <option>Licenziato</option>
+                </select>
+              </div>
+
             </div>
             <ul class="actions">
               <li><button type="submit" class="primary">Aggiungi AS</button></li>
@@ -117,13 +169,13 @@
         const record = {
           nome:       form.nome.value.trim(),
           cognome:    form.cognome.value.trim(),
-          team:       form.team.value.trim(),
-          ruolo:      form.ruolo.value.trim(),
-          sede:       form.sede.value.trim(),
+          team:       form.team.value,
+          ruolo:      form.ruolo.value,
+          sede:       form.sede.value,
           contratto:  form.contratto.value,
-          ambito:     form.ambito.value.split(',').map(s=>s.trim()).filter(s=>s),
-          clienti:    form.clienti.value.split(',').map(s=>s.trim()).filter(s=>s),
-          stato:      form.stato.value.trim(),
+          ambito:     [ form.ambito.value ],   // ora è un solo valore
+          clienti:    [ form.clienti.value ],  // ora è un solo valore
+          stato:      form.stato.value,
         };
         const { error } = await sb.from(TABLE).insert(record);
         if (error) return alert('Errore inserimento: '+error.message);
@@ -147,12 +199,12 @@
           <td>${r.nome}</td>
           <td>${r.cognome}</td>
           <td>${r.team}</td>
-          <td>${r.ruolo||''}</td>
+          <td>${r.ruolo}</td>
           <td>${r.sede}</td>
           <td>${r.contratto}</td>
           <td>${(r.ambito||[]).join(', ')}</td>
           <td>${(r.clienti||[]).join(', ')}</td>
-          <td>${r.stato||''}</td>
+          <td>${r.stato}</td>
           <td><button data-id="${r.id}">✕</button></td>`;
         tr.querySelector('button').onclick = async () => {
           if (!confirm('Eliminare questo AS?')) return;
