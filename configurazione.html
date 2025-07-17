@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <title>Configurazioni – Gestionale Dipendenti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Phantom CSS -->
   <link rel="stylesheet" href="assets/css/main.css" />
   <noscript>
     <link rel="stylesheet" href="assets/css/noscript.css" />
@@ -13,66 +12,50 @@
 <body class="is-preload">
 
   <div id="wrapper">
-
-    <!-- Header -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
         <h2>Configurazioni</h2>
       </div>
     </header>
-
-    <!-- Main -->
     <div id="main">
       <div class="inner">
         <p>Inserisci, su ogni riga, una voce della lista. Quando hai finito clicca “Salva”.</p>
-
         <form id="cfgForm">
-          <!-- Team -->
           <div class="field">
             <label for="cfgTeam">Team</label>
             <textarea id="cfgTeam" rows="5" placeholder="Team 1&#10;Team 2&#10;Team 3"></textarea>
           </div>
-          <!-- Ruolo -->
           <div class="field">
             <label for="cfgRole">Ruolo</label>
             <textarea id="cfgRole" rows="5" placeholder="Ruolo 1&#10;Ruolo 2"></textarea>
           </div>
-          <!-- Sede -->
           <div class="field">
             <label for="cfgSede">Sede</label>
             <textarea id="cfgSede" rows="5" placeholder="Sede 1&#10;Sede 2"></textarea>
           </div>
-          <!-- Contratto -->
           <div class="field">
             <label for="cfgContract">Contratto</label>
             <textarea id="cfgContract" rows="5" placeholder="Indeterminato&#10;Determinato&#10;Somministrato"></textarea>
           </div>
-          <!-- Ambito -->
           <div class="field">
             <label for="cfgAmbito">Ambito</label>
             <textarea id="cfgAmbito" rows="5" placeholder="Ambito 1&#10;Ambito 2"></textarea>
           </div>
-          <!-- Cliente -->
           <div class="field">
             <label for="cfgClients">Cliente</label>
             <textarea id="cfgClients" rows="5" placeholder="Cliente 1&#10;Cliente 2"></textarea>
           </div>
-          <!-- Stato -->
           <div class="field">
             <label for="cfgState">Stato</label>
             <textarea id="cfgState" rows="5" placeholder="Assunto&#10;Rinnovato&#10;Non Rinnovato&#10;Licenziato"></textarea>
           </div>
-
           <ul class="actions">
             <li><button type="submit" class="primary">Salva Configurazioni</button></li>
           </ul>
         </form>
-
       </div>
     </div>
-
-    <!-- Footer -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -80,23 +63,27 @@
         </ul>
       </div>
     </footer>
-
   </div>
 
-  <!-- 1) Supabase UMD deve venire PRIMA del tuo script -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+  <!-- 1) Supabase UMD -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
 
-  <!-- 2) Script di configurazione -->
+  <!-- 2) Script di configurazione con logging -->
   <script>
     (async () => {
-      // --- INIZIALIZZA CLIENT SUPABASE ---
+      console.log('⚙️ Configurazione: inizio script');
+      if (typeof supabase === 'undefined') {
+        console.error('❌ supabase non è definito! Controlla che il tag <script> sia incluso.');
+        alert('Errore interno: supabase non trovato (vedi console)');
+        return;
+      }
       const sb = supabase.createClient(
         'https://fzbpucvscnfyimefrvzs.supabase.co',
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…' // la tua anon key
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'
       );
-      const TABLE = 'settings';
+      console.log('✔️ supabase client creato', sb);
 
-      // definisci i campi della tua form
+      const TABLE = 'settings';
       const fields = [
         { id: 'cfgTeam',     key: 'team'      },
         { id: 'cfgRole',     key: 'ruolo'     },
@@ -107,59 +94,49 @@
         { id: 'cfgState',    key: 'stato'     },
       ];
 
-      // al DOM ready carica le impostazioni
-      document.addEventListener('DOMContentLoaded', async () => {
-        let res;
-        try {
-          res = await sb.from(TABLE).select('id, values');
-        } catch (err) {
-          console.error('Errore fetch settings:', err);
-          return alert('Errore caricamento configurazioni — guarda console');
-        }
-        if (res.error) {
-          console.error('Supabase error:', res.error);
-          return alert('Errore caricamento configurazioni: ' + res.error.message);
-        }
-        if (res.data) {
-          res.data.forEach(row => {
-            const f = fields.find(x => x.key === row.id);
-            if (f && Array.isArray(row.values)) {
-              document.getElementById(f.id).value = row.values.join('\n');
-            }
-          });
-        }
+      // Carica configurazioni
+      try {
+        console.log(`📥 Querying table "${TABLE}"`);
+        const { data, error } = await sb.from(TABLE).select('id, values');
+        if (error) throw error;
+        console.log('📥 Dati ricevuti:', data);
 
-        // submit della form
-        document.getElementById('cfgForm')
-          .addEventListener('submit', async e => {
-            e.preventDefault();
-            for (let f of fields) {
-              const txt = document
-                .getElementById(f.id)
-                .value
-                .split('\n')
-                .map(s => s.trim())
-                .filter(s => s);
-              let up;
-              try {
-                up = await sb
-                  .from(TABLE)
-                  .upsert(
-                    { id: f.key, values: txt },
-                    { onConflict: 'id' }
-                  );
-              } catch (err) {
-                console.error(`Errore upsert ${f.key}:`, err);
-                return alert('Errore salvataggio — guarda console');
-              }
-              if (up.error) {
-                console.error(`Supabase upsert error (${f.key}):`, up.error);
-                return alert('Errore salvataggio: ' + up.error.message);
-              }
+        (data||[]).forEach(row => {
+          const f = fields.find(x => x.key === row.id);
+          if (f) {
+            if (Array.isArray(row.values)) {
+              document.getElementById(f.id).value = row.values.join('\n');
+            } else {
+              console.warn(`⚠️ row.values non è array per ${row.id}`, row.values);
             }
-            alert('Configurazioni salvate!');
-          });
+          }
+        });
+      } catch (err) {
+        console.error('❌ Errore caricamento configurazioni:', err);
+        alert('Errore caricamento configurazioni (vedi console)');
+      }
+
+      // Submit
+      document.getElementById('cfgForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        for (let f of fields) {
+          const raw = document.getElementById(f.id).value;
+          const arr = raw.split('\n').map(s=>s.trim()).filter(s=>s);
+          console.log(`📝 Salvando "${f.key}" =`, arr);
+          try {
+            const { error } = await sb
+              .from(TABLE)
+              .upsert({ id: f.key, values: arr }, { onConflict: 'id' });
+            if (error) throw error;
+          } catch (err) {
+            console.error(`❌ Errore upsert ${f.key}:`, err);
+            return alert('Errore salvataggio (vedi console)');
+          }
+        }
+        alert('Configurazioni salvate con successo!');
       });
+
+      console.log('⚙️ Configurazione: script pronto');
     })();
   </script>
 
@@ -169,6 +146,7 @@
   <script src="assets/js/breakpoints.min.js"></script>
   <script src="assets/js/util.js"></script>
   <script src="assets/js/main.js"></script>
-
+  <!-- fine -->
+</script>
 </body>
 </html>
