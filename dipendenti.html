@@ -15,8 +15,10 @@
 </head>
 <body class="is-preload">
 
+  <!-- Wrapper -->
   <div id="wrapper">
 
+    <!-- Header small con back -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
@@ -24,6 +26,7 @@
       </div>
     </header>
 
+    <!-- Main: form + tabella -->
     <div id="main">
       <div class="inner">
 
@@ -33,10 +36,10 @@
             <div class="fields">
 
               <div class="field half">
-                <input id="inName"    name="nome"     type="text" placeholder="Nome" required />
+                <input id="inName"    name="nome"       type="text" placeholder="Nome"    required />
               </div>
               <div class="field half">
-                <input id="inSurname" name="cognome"  type="text" placeholder="Cognome" required />
+                <input id="inSurname" name="cognome"    type="text" placeholder="Cognome" required />
               </div>
 
               <div class="field half">
@@ -137,6 +140,7 @@
       </div>
     </div>
 
+    <!-- Footer minimale -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -147,17 +151,19 @@
 
   </div>
 
-  <!-- Supabase -->
+  <!-- Supabase JS -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
 
+  <!-- Script di gestione -->
   <script>
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…' // la tua chiave completa
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
     );
     const TABLE = 'application_specialists';
 
     document.addEventListener('DOMContentLoaded', () => {
+      // submit del form
       document.getElementById('asForm').addEventListener('submit', async e => {
         e.preventDefault();
         const f = e.target;
@@ -173,10 +179,11 @@
           stato:     f.stato.value
         };
         const { error } = await sb.from(TABLE).insert(rec);
-        if (error) return alert(error.message);
+        if (error) return alert('Errore inserimento: '+error.message);
         f.reset();
         loadList();
       });
+      // caricamento iniziale
       loadList();
     });
 
@@ -185,7 +192,7 @@
         .from(TABLE)
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) return alert(error.message);
+      if (error) return alert('Errore caricamento: '+error.message);
       const tbody = document.getElementById('listBody');
       tbody.innerHTML = '';
       data.forEach(r => {
