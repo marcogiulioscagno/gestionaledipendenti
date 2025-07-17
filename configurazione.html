@@ -1,0 +1,149 @@
+<!DOCTYPE HTML>
+<!-- configurazione.html -->
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <title>Configurazioni – Gestionale Dipendenti</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Phantom CSS -->
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+</head>
+<body class="is-preload">
+
+  <div id="wrapper">
+
+    <!-- Header con back -->
+    <header id="header">
+      <div class="inner">
+        <a href="index.html" class="button small">← Home</a>
+        <h2>Configurazioni</h2>
+      </div>
+    </header>
+
+    <!-- Main: form configurazioni -->
+    <div id="main">
+      <div class="inner">
+
+        <p>Inserisci, su ogni riga, una voce della lista. Quando hai finito clicca “Salva”.</p>
+
+        <form id="cfgForm">
+          <div class="field">
+            <label for="cfgTeam">Team</label>
+            <textarea id="cfgTeam" rows="5" placeholder="Team 1&#10;Team 2&#10;Team 3"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="cfgRole">Ruolo</label>
+            <textarea id="cfgRole" rows="5" placeholder="Ruolo 1&#10;Ruolo 2"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="cfgSede">Sede</label>
+            <textarea id="cfgSede" rows="5" placeholder="Sede 1&#10;Sede 2"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="cfgContract">Contratto</label>
+            <textarea id="cfgContract" rows="5" placeholder="Indeterminato&#10;Determinato&#10;Somministrato"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="cfgAmbito">Ambito</label>
+            <textarea id="cfgAmbito" rows="5" placeholder="Ambito 1&#10;Ambito 2"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="cfgClients">Cliente</label>
+            <textarea id="cfgClients" rows="5" placeholder="Cliente 1&#10;Cliente 2"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="cfgState">Stato</label>
+            <textarea id="cfgState" rows="5" placeholder="Assunto&#10;Rinnovato&#10;Non Rinnovato&#10;Licenziato"></textarea>
+          </div>
+
+          <ul class="actions">
+            <li><button type="submit" class="primary">Salva Configurazioni</button></li>
+          </ul>
+        </form>
+
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer id="footer">
+      <div class="inner">
+        <ul class="copyright">
+          <li>&copy; Gestionale Dipendenti</li>
+        </ul>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
+
+  <script>
+    const sb = supabase.createClient(
+      'https://fzbpucvscnfyimefrvzs.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'  // tua chiave anon
+    );
+    const TABLE = 'settings';
+    const fields = [
+      { id: 'cfgTeam',      key: 'team'     },
+      { id: 'cfgRole',      key: 'ruolo'    },
+      { id: 'cfgSede',      key: 'sede'     },
+      { id: 'cfgContract',  key: 'contratto'},
+      { id: 'cfgAmbito',    key: 'ambito'   },
+      { id: 'cfgClients',   key: 'clienti'  },
+      { id: 'cfgState',     key: 'stato'    }
+    ];
+
+    // Al caricamento, recupera da Supabase e popola le textarea
+    document.addEventListener('DOMContentLoaded', async () => {
+      const { data, error } = await sb
+        .from(TABLE)
+        .select('id, values');
+
+      if (error) return alert('Errore caricamento configurazioni: ' + error.message);
+
+      data.forEach(row => {
+        const field = fields.find(f => f.key === row.id);
+        if (field) {
+          document.getElementById(field.id).value = row.values.join('\n');
+        }
+      });
+
+      // submit del form
+      document.getElementById('cfgForm')
+        .addEventListener('submit', async e => {
+          e.preventDefault();
+          // per ogni campo, upsert
+          for (let f of fields) {
+            const txt = document.getElementById(f.id).value
+              .split('\n')
+              .map(s => s.trim())
+              .filter(s => s);
+            const { error } = await sb
+              .from(TABLE)
+              .upsert({ id: f.key, values: txt }, { onConflict: 'id' });
+            if (error) {
+              return alert('Errore salvataggio '+f.key+': '+ error.message);
+            }
+          }
+          alert('Configurazioni salvate!');
+        });
+    });
+  </script>
+
+  <!-- Phantom JS -->
+  <script src="assets/js/jquery.min.js"></script>
+  <script src="assets/js/browser.min.js"></script>
+  <script src="assets/js/breakpoints.min.js"></script>
+  <script src="assets/js/util.js"></script>
+  <script src="assets/js/main.js"></script>
+
+</body>
+</html>
