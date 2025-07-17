@@ -1,5 +1,4 @@
 <!DOCTYPE HTML>
-<!-- configurazione.html -->
 <html lang="it">
 <head>
   <meta charset="utf-8" />
@@ -7,13 +6,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <!-- Phantom CSS -->
   <link rel="stylesheet" href="assets/css/main.css" />
-  <noscript><link rel="stylesheet" href="assets/css/noscript.css" /></noscript>
+  <noscript>
+    <link rel="stylesheet" href="assets/css/noscript.css" />
+  </noscript>
 </head>
 <body class="is-preload">
 
   <div id="wrapper">
 
-    <!-- Header con back -->
+    <!-- Header -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
@@ -21,43 +22,43 @@
       </div>
     </header>
 
-    <!-- Main: form configurazioni -->
+    <!-- Main -->
     <div id="main">
       <div class="inner">
-
         <p>Inserisci, su ogni riga, una voce della lista. Quando hai finito clicca “Salva”.</p>
 
         <form id="cfgForm">
+          <!-- Team -->
           <div class="field">
             <label for="cfgTeam">Team</label>
             <textarea id="cfgTeam" rows="5" placeholder="Team 1&#10;Team 2&#10;Team 3"></textarea>
           </div>
-
+          <!-- Ruolo -->
           <div class="field">
             <label for="cfgRole">Ruolo</label>
             <textarea id="cfgRole" rows="5" placeholder="Ruolo 1&#10;Ruolo 2"></textarea>
           </div>
-
+          <!-- Sede -->
           <div class="field">
             <label for="cfgSede">Sede</label>
             <textarea id="cfgSede" rows="5" placeholder="Sede 1&#10;Sede 2"></textarea>
           </div>
-
+          <!-- Contratto -->
           <div class="field">
             <label for="cfgContract">Contratto</label>
             <textarea id="cfgContract" rows="5" placeholder="Indeterminato&#10;Determinato&#10;Somministrato"></textarea>
           </div>
-
+          <!-- Ambito -->
           <div class="field">
             <label for="cfgAmbito">Ambito</label>
             <textarea id="cfgAmbito" rows="5" placeholder="Ambito 1&#10;Ambito 2"></textarea>
           </div>
-
+          <!-- Cliente -->
           <div class="field">
             <label for="cfgClients">Cliente</label>
             <textarea id="cfgClients" rows="5" placeholder="Cliente 1&#10;Cliente 2"></textarea>
           </div>
-
+          <!-- Stato -->
           <div class="field">
             <label for="cfgState">Stato</label>
             <textarea id="cfgState" rows="5" placeholder="Assunto&#10;Rinnovato&#10;Non Rinnovato&#10;Licenziato"></textarea>
@@ -82,63 +83,87 @@
 
   </div>
 
-  <!-- Supabase JS -->
+  <!-- 1) Supabase UMD deve venire PRIMA del tuo script -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
 
+  <!-- 2) Script di configurazione -->
   <script>
-    const sb = supabase.createClient(
-      'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…'  // tua chiave anon
-    );
-    const TABLE = 'settings';
-    const fields = [
-      { id: 'cfgTeam',      key: 'team'     },
-      { id: 'cfgRole',      key: 'ruolo'    },
-      { id: 'cfgSede',      key: 'sede'     },
-      { id: 'cfgContract',  key: 'contratto'},
-      { id: 'cfgAmbito',    key: 'ambito'   },
-      { id: 'cfgClients',   key: 'clienti'  },
-      { id: 'cfgState',     key: 'stato'    }
-    ];
+    (async () => {
+      // --- INIZIALIZZA CLIENT SUPABASE ---
+      const sb = supabase.createClient(
+        'https://fzbpucvscnfyimefrvzs.supabase.co',
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…' // la tua anon key
+      );
+      const TABLE = 'settings';
 
-    // Al caricamento, recupera da Supabase e popola le textarea
-    document.addEventListener('DOMContentLoaded', async () => {
-      const { data, error } = await sb
-        .from(TABLE)
-        .select('id, values');
+      // definisci i campi della tua form
+      const fields = [
+        { id: 'cfgTeam',     key: 'team'      },
+        { id: 'cfgRole',     key: 'ruolo'     },
+        { id: 'cfgSede',     key: 'sede'      },
+        { id: 'cfgContract', key: 'contratto'},
+        { id: 'cfgAmbito',   key: 'ambito'    },
+        { id: 'cfgClients',  key: 'clienti'   },
+        { id: 'cfgState',    key: 'stato'     },
+      ];
 
-      if (error) return alert('Errore caricamento configurazioni: ' + error.message);
-
-      data.forEach(row => {
-        const field = fields.find(f => f.key === row.id);
-        if (field) {
-          document.getElementById(field.id).value = row.values.join('\n');
+      // al DOM ready carica le impostazioni
+      document.addEventListener('DOMContentLoaded', async () => {
+        let res;
+        try {
+          res = await sb.from(TABLE).select('id, values');
+        } catch (err) {
+          console.error('Errore fetch settings:', err);
+          return alert('Errore caricamento configurazioni — guarda console');
         }
-      });
-
-      // submit del form
-      document.getElementById('cfgForm')
-        .addEventListener('submit', async e => {
-          e.preventDefault();
-          // per ogni campo, upsert
-          for (let f of fields) {
-            const txt = document.getElementById(f.id).value
-              .split('\n')
-              .map(s => s.trim())
-              .filter(s => s);
-            const { error } = await sb
-              .from(TABLE)
-              .upsert({ id: f.key, values: txt }, { onConflict: 'id' });
-            if (error) {
-              return alert('Errore salvataggio '+f.key+': '+ error.message);
+        if (res.error) {
+          console.error('Supabase error:', res.error);
+          return alert('Errore caricamento configurazioni: ' + res.error.message);
+        }
+        if (res.data) {
+          res.data.forEach(row => {
+            const f = fields.find(x => x.key === row.id);
+            if (f && Array.isArray(row.values)) {
+              document.getElementById(f.id).value = row.values.join('\n');
             }
-          }
-          alert('Configurazioni salvate!');
-        });
-    });
+          });
+        }
+
+        // submit della form
+        document.getElementById('cfgForm')
+          .addEventListener('submit', async e => {
+            e.preventDefault();
+            for (let f of fields) {
+              const txt = document
+                .getElementById(f.id)
+                .value
+                .split('\n')
+                .map(s => s.trim())
+                .filter(s => s);
+              let up;
+              try {
+                up = await sb
+                  .from(TABLE)
+                  .upsert(
+                    { id: f.key, values: txt },
+                    { onConflict: 'id' }
+                  );
+              } catch (err) {
+                console.error(`Errore upsert ${f.key}:`, err);
+                return alert('Errore salvataggio — guarda console');
+              }
+              if (up.error) {
+                console.error(`Supabase upsert error (${f.key}):`, up.error);
+                return alert('Errore salvataggio: ' + up.error.message);
+              }
+            }
+            alert('Configurazioni salvate!');
+          });
+      });
+    })();
   </script>
 
-  <!-- Phantom JS -->
+  <!-- 3) Phantom JS -->
   <script src="assets/js/jquery.min.js"></script>
   <script src="assets/js/browser.min.js"></script>
   <script src="assets/js/breakpoints.min.js"></script>
