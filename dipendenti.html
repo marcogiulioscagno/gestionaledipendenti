@@ -15,10 +15,8 @@
 </head>
 <body class="is-preload">
 
-  <!-- Wrapper -->
   <div id="wrapper">
 
-    <!-- Header small con back -->
     <header id="header">
       <div class="inner">
         <a href="index.html" class="button small">← Home</a>
@@ -26,25 +24,24 @@
       </div>
     </header>
 
-    <!-- Main: form + tabella -->
     <div id="main">
       <div class="inner">
 
-        <!-- FORM (Phantom style “alt”) -->
+        <!-- FORM -->
         <section class="alt">
-          <form id="asForm" name="asForm">
+          <form id="asForm">
             <div class="fields">
 
               <div class="field half">
-                <input id="inName"    type="text" name="nome"     placeholder="Nome"       required />
+                <input id="inName"    name="nome"     type="text" placeholder="Nome" required />
               </div>
               <div class="field half">
-                <input id="inSurname" type="text" name="cognome"  placeholder="Cognome"    required />
+                <input id="inSurname" name="cognome"  type="text" placeholder="Cognome" required />
               </div>
 
               <div class="field half">
                 <select id="inTeam" name="team" required>
-                  <option value="" disabled selected>Seleziona Team</option>
+                  <option value="" disabled selected>Team</option>
                   <option>Team 1</option>
                   <option>Team 2</option>
                   <option>Team 3</option>
@@ -55,7 +52,7 @@
 
               <div class="field half">
                 <select id="inRole" name="ruolo" required>
-                  <option value="" disabled selected>Seleziona Ruolo</option>
+                  <option value="" disabled selected>Ruolo</option>
                   <option>Ruolo 1</option>
                   <option>Ruolo 2</option>
                   <option>Ruolo 3</option>
@@ -66,7 +63,7 @@
 
               <div class="field half">
                 <select id="inSede" name="sede" required>
-                  <option value="" disabled selected>Seleziona Sede</option>
+                  <option value="" disabled selected>Sede</option>
                   <option>Sede 1</option>
                   <option>Sede 2</option>
                   <option>Sede 3</option>
@@ -77,7 +74,7 @@
 
               <div class="field half">
                 <select id="inContract" name="contratto" required>
-                  <option value="" disabled selected>Seleziona Contratto</option>
+                  <option value="" disabled selected>Contratto</option>
                   <option>Indeterminato</option>
                   <option>Determinato</option>
                   <option>Somministrato</option>
@@ -86,7 +83,7 @@
 
               <div class="field half">
                 <select id="inAmbito" name="ambito" required>
-                  <option value="" disabled selected>Seleziona Ambito</option>
+                  <option value="" disabled selected>Ambito</option>
                   <option>Ambito 1</option>
                   <option>Ambito 2</option>
                   <option>Ambito 3</option>
@@ -97,7 +94,7 @@
 
               <div class="field half">
                 <select id="inClients" name="clienti" required>
-                  <option value="" disabled selected>Seleziona Cliente</option>
+                  <option value="" disabled selected>Cliente</option>
                   <option>Cliente 1</option>
                   <option>Cliente 2</option>
                   <option>Cliente 3</option>
@@ -108,7 +105,7 @@
 
               <div class="field half">
                 <select id="inState" name="stato" required>
-                  <option value="" disabled selected>Seleziona Stato</option>
+                  <option value="" disabled selected>Stato</option>
                   <option>Assunto</option>
                   <option>Rinnovato</option>
                   <option>Non Rinnovato</option>
@@ -123,7 +120,7 @@
           </form>
         </section>
 
-        <!-- TABELLA (Phantom style) -->
+        <!-- TABELLA -->
         <section class="table-wrapper alt">
           <table>
             <thead>
@@ -140,7 +137,6 @@
       </div>
     </div>
 
-    <!-- Footer minimale -->
     <footer id="footer">
       <div class="inner">
         <ul class="copyright">
@@ -151,48 +147,47 @@
 
   </div>
 
-  <!-- Supabase UMD -->
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/dist/umd/supabase.min.js"></script>
 
-  <!-- Inline script: creaClient, carica dati e gestisce form -->
   <script>
     const sb = supabase.createClient(
       'https://fzbpucvscnfyimefrvzs.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ6YnB1Y3ZzY25meWltZWZydnpzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI0MjIwMDUsImV4cCI6MjA2Nzk5ODAwNX0.TmDOR-UnkeSkTnnEQuuYTHchmwfdNGO9rnrmXu9akuM'
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.…' // la tua chiave completa
     );
     const TABLE = 'application_specialists';
 
     document.addEventListener('DOMContentLoaded', () => {
-      const form = document.getElementById('asForm');
-      form.addEventListener('submit', async e => {
+      document.getElementById('asForm').addEventListener('submit', async e => {
         e.preventDefault();
-        const record = {
-          nome:       form.nome.value.trim(),
-          cognome:    form.cognome.value.trim(),
-          team:       form.team.value,
-          ruolo:      form.ruolo.value,
-          sede:       form.sede.value,
-          contratto:  form.contratto.value,
-          ambito:     [ form.ambito.value ],   // ora è un solo valore
-          clienti:    [ form.clienti.value ],  // ora è un solo valore
-          stato:      form.stato.value,
+        const f = e.target;
+        const rec = {
+          nome:      f.nome.value.trim(),
+          cognome:   f.cognome.value.trim(),
+          team:      f.team.value,
+          ruolo:     f.ruolo.value,
+          sede:      f.sede.value,
+          contratto: f.contratto.value,
+          ambito:    [f.ambito.value],
+          clienti:   [f.clienti.value],
+          stato:     f.stato.value
         };
-        const { error } = await sb.from(TABLE).insert(record);
-        if (error) return alert('Errore inserimento: '+error.message);
-        form.reset();
+        const { error } = await sb.from(TABLE).insert(rec);
+        if (error) return alert(error.message);
+        f.reset();
         loadList();
       });
       loadList();
     });
 
     async function loadList() {
-      const tbody = document.getElementById('listBody');
-      tbody.innerHTML = '';
       const { data, error } = await sb
         .from(TABLE)
         .select('*')
         .order('created_at', { ascending: false });
-      if (error) return alert('Errore caricamento: '+error.message);
+      if (error) return alert(error.message);
+      const tbody = document.getElementById('listBody');
+      tbody.innerHTML = '';
       data.forEach(r => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
@@ -208,8 +203,7 @@
           <td><button data-id="${r.id}">✕</button></td>`;
         tr.querySelector('button').onclick = async () => {
           if (!confirm('Eliminare questo AS?')) return;
-          const { error } = await sb.from(TABLE).delete().eq('id', r.id);
-          if (error) return alert('Errore eliminazione: '+error.message);
+          await sb.from(TABLE).delete().eq('id', r.id);
           loadList();
         };
         tbody.appendChild(tr);
